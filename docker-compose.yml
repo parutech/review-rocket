@@ -1,0 +1,59 @@
+version: '1.0'
+services:
+  revrock-client:
+    build:
+      context: review-rocket-client
+      target: development
+    ports:
+      - 3000:3000
+    volumes:
+      - ./review-rocket-client/src:/code/src
+      - /code/node_modules
+    depends_on:
+      - revrock-server
+    stdin_open: true
+    tty: true
+    networks:
+      - public
+
+  revrock-server:
+    build:
+      args:
+        - NODE_ENV=development
+      context: review-rocket-server
+      target: development
+    command: npm start
+    env_file: "./review-rocket-server/.env"
+    environment:
+      - NODE_ENV=development
+    restart: always
+    ports:
+      - 4000:4000
+    volumes:
+      - ./review-rocket-server/src:/code/src:ro
+      - ./review-rocket-server/package.json:/code/package.json
+      - ./review-rocket-server/package-lock.json:/code/package-lock.json
+    depends_on:
+      - revrock-db
+    networks:
+      - public
+      - private
+
+  revrock-db:
+    image: mysql:8.0.27
+    command: '--authentication_policy=caching_sha2_password --init-file /data/application/init.sql'
+    restart: always
+    volumes:
+      - ./mysql/data:/var/lib/mysql
+      - ./mysql/init.sql:/data/application/init.sql
+    environment:
+      - MYSQL_DATABASE=revrock-mysql
+      - MYSQL_ROOT_PASSWORD=j92MfIdFnz8Ne8vOS21fYZf35iGZaf5E
+    networks:
+      - private
+
+networks:
+  public:
+  private:
+volumes:
+  db-data:
