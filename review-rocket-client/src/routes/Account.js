@@ -222,7 +222,7 @@ function Account() {
                                             <h5 className="card-title">Unlimited tokens</h5>
                                             <h6 className="card-subtitle mb-2 text-muted">You currently have this plan</h6>
                                             <p className="card-text">This plan grants you unlimited access to ReviewRocket</p>
-                                            <NavLink to="https://www.paypal.com/" className="btn active" target='_blank'>Unsubscribe</NavLink>
+                                            <NavLink to="https://www.paypal.com/myaccount/autopay/" className="btn active" target='_blank'>Unsubscribe</NavLink>
                                         </div>
                                     </div>
                                 </div>

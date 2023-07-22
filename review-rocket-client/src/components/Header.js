@@ -15,7 +15,7 @@ function Header() {
                 tokens: res.data.tokens,
             })
         })
-    }, [window.location])
+    }, [])
 
     return (
         <header>

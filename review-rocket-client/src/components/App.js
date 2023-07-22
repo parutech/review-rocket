@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import Axios from 'axios';
 
@@ -54,16 +54,6 @@ export default function App() {
     const sessionValues = { sessionParameters, setSessionParameters }
 
     Axios.defaults.withCredentials = true;
-
-    useEffect(() => {
-        Axios.get('https://review-rocket.fr:4000/api/login').then((res) => {
-            setSessionParameters({
-                isLogged: res.data.loggedIn,
-                isVerified: res.data.verified,
-                tokens: res.data.tokens,
-            })
-        })
-    }, [])
 
     return (
         <ContextData.Provider value={sessionValues}>

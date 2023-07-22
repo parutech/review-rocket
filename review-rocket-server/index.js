@@ -25,10 +25,16 @@ const express = require("express");
 const app = express();
 const router = express.Router();
 
-app.use(morgan("common"))
+morgan.token('email', function (req, res) {
+    if (!req.session) {
+        return "-"
+    }
+    return JSON.parse(jfe.decrypt(Buffer.from(process.env.UID_ENCRYPT, 'base64'), req.session.user)).email
+})
+app.use(morgan(':email | :remote-addr <-> :remote-user [:date[clf]] ":method :url HTTP/:http-version" :status :res[content-length] in :response-time ms'))
 app.use(express.json())
 app.use(cors({
-    origin: ["http://localhost:3000"],
+    origin: ["https://review-rocket.fr"],
     methods: ["GET", "POST"],
     credentials: true,
 }))
@@ -39,8 +45,7 @@ app.use(bodyParser.urlencoded({ extended: true }))
 
 app.use(session({
     key: "id",
-    secret: process.env.UID_SECRET,
-    //secret: uid.sync(64),
+    secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
     cookie: {
@@ -58,8 +63,8 @@ const transporter = nodemailer.createTransport({
     }
 });
 
-const registerEmailTemplate = handlebars.compile('<nav style="background-color: rgba(33,37,41); position: relative; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; padding: 0.5rem 0;"><div style="display: flex; flex-wrap: inherit; align-items: center; justify-content: space-between; max-width: 100%; padding-top: 1rem !important; padding-bottom: 1rem !important;"><div style="text-align: center !important; display: flex; flex-wrap: inherit; align-items: center; justify-content: space-between; max-width: 900px; padding-top: 1rem !important; padding-bottom: 1rem !important;"><a href="http://localhost:3000/login" style="margin: 0 !important; color: #000; text-decoration: none;"><h1>🚀 ReviewRocket</h1></a></div></div></nav><div style="text-align: center !important;"><h2>Welcome to ReviewRocket!</h2><p>Thank you for creating a ReviewRocket account! <br />To be able to create reviews, you first need to verify your account by clicking on the link below:</p><a href="http://localhost:3000/verify?email={{uEmail}}&key={{vKey}}">Click here to verify your account</a></div>')
-const changePassTemplate = '<nav style="background-color: rgba(33,37,41); position: relative; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;padding: 0.5rem 0;"><div style="display: flex;flex-wrap: inherit;align-items: center;justify-content: space-between;max-width: 900px;padding-top: 1rem !important;padding-bottom: 1rem !important;"><div style="text-align: center !important;display: flex;flex-wrap: inherit;align-items: center;justify-content: space-between;max-width: 900px;padding-top: 1rem !important;padding-bottom: 1rem !important;"><a href="http://localhost:3000/login" style="margin: 0 !important;color: #000;text-decoration: none;"><h1>🚀 ReviewRocket</h1></a></div></div></nav><div style="text-align: center !important;"><h2>Your ReviewRocket account</h2><p>Your password has been changed! <br />If you are the source of this change, you may ignore this email. Otherwise, please contact the ReviewRocket support ASAP:</p><a href="mailto:support@review-rocket.fr">ReviewRocket Support</a></div>'
+const registerEmailTemplate = handlebars.compile('<nav style="background-color: rgba(33,37,41); position: relative; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; padding: 0.5rem 0;"><div style="display: flex; flex-wrap: inherit; align-items: center; justify-content: space-between; max-width: 100%; padding-top: 1rem !important; padding-bottom: 1rem !important;"><div style="text-align: center !important; display: flex; flex-wrap: inherit; align-items: center; justify-content: space-between; max-width: 900px; padding-top: 1rem !important; padding-bottom: 1rem !important;"><a href="https://review-rocket.fr/login" style="margin: 0 !important; color: #000; text-decoration: none;"><h1>🚀 ReviewRocket</h1></a></div></div></nav><div style="text-align: center !important;"><h2>Welcome to ReviewRocket!</h2><p>Thank you for creating a ReviewRocket account! <br />To be able to create reviews, you first need to verify your account by clicking on the link below:</p><a href="https://review-rocket.fr/verify?email={{uEmail}}&key={{vKey}}">Click here to verify your account</a></div>')
+const changePassTemplate = '<nav style="background-color: rgba(33,37,41); position: relative; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;padding: 0.5rem 0;"><div style="display: flex;flex-wrap: inherit;align-items: center;justify-content: space-between;max-width: 900px;padding-top: 1rem !important;padding-bottom: 1rem !important;"><div style="text-align: center !important;display: flex;flex-wrap: inherit;align-items: center;justify-content: space-between;max-width: 900px;padding-top: 1rem !important;padding-bottom: 1rem !important;"><a href="https://review-rocket.fr/login" style="margin: 0 !important;color: #000;text-decoration: none;"><h1>🚀 ReviewRocket</h1></a></div></div></nav><div style="text-align: center !important;"><h2>Your ReviewRocket account</h2><p>Your password has been changed! <br />If you are the source of this change, you may ignore this email. Otherwise, please contact the ReviewRocket support ASAP:</p><a href="mailto:support@review-rocket.fr">ReviewRocket Support</a></div>'
 
 async function sendRegisterEmail(userEmail, verificationKey) {
     const htmlToSend = registerEmailTemplate({ uEmail: userEmail, vKey: verificationKey.toString() })
@@ -145,7 +150,6 @@ async function handleResponse(response) {
     throw new Error(errorMessage);
 }
 
-console.log(process.env.SQL_HOST, process.env.SQL_PORT, process.env.SQL_USER, process.env.SQL_PASSWORD, process.env.SQL_DATABASE)
 const pool = mysql.createPool({
     connectionLimit: 100,
     host: process.env.SQL_HOST,
@@ -160,9 +164,8 @@ pool.getConnection(function (err, connection) {
     if (err) throw err; // not connected!
 })
 
-app.post("api/captcha", async (req, res) => {
+app.post("/api/captcha", async (req, res) => {
     const token = req.body.token;
-    console.log(process.env.CAPTCHA_SECRET_KEY, token)
 
     axios.post(
         `https://www.google.com/recaptcha/api/siteverify?secret=${process.env.CAPTCHA_SECRET_KEY}&response=${token}`
@@ -171,7 +174,7 @@ app.post("api/captcha", async (req, res) => {
     })
 });
 
-app.post("api/register", (req, res) => {
+app.post("/api/register", (req, res) => {
     const userEmail = req.body.userEmail
     const userPass = req.body.userPass
     const captcha = req.body.captcha
@@ -212,7 +215,7 @@ app.post("api/register", (req, res) => {
     })
 })
 
-app.post("api/change-password", (req, res) => {
+app.post("/api/change-password", (req, res) => {
     if (!req.session.user) {
         res.send({ success: false })
         return
@@ -247,7 +250,7 @@ app.post("api/change-password", (req, res) => {
     })
 })
 
-app.post("api/delete-account", (req, res) => {
+app.post("/api/delete-account", (req, res) => {
     if (!req.session.user) {
         res.send({ success: false })
         return
@@ -306,7 +309,7 @@ app.post("api/delete-account", (req, res) => {
     )
 })
 
-app.post("api/login", (req, res) => {
+app.post("/api/login", (req, res) => {
     const userEmail = req.body.userEmail
     const userPass = req.body.userPass
     const captcha = req.body.captcha
@@ -372,7 +375,7 @@ app.post("api/login", (req, res) => {
     return
 })
 
-app.get("api/login", (req, res) => {
+app.get("/api/login", (req, res) => {
     if (!req.session.user) {
         res.send({ loggedIn: false })
         return
@@ -382,6 +385,7 @@ app.get("api/login", (req, res) => {
         Buffer.from(process.env.UID_ENCRYPT, 'base64'),
         req.session.user)
     ).email
+
     pool.query(
         "SELECT * FROM users WHERE email = ? LIMIT 1;",
         [userEmail],
@@ -402,14 +406,27 @@ app.get("api/login", (req, res) => {
             if (result.length == 0) {
                 res.send({
                     loggedIn: false,
-                    message: "User not foundr"
+                    message: "User not found"
                 })
                 return
             }
 
-            if (result[0].subscription) {
+            if (!result[0].subscription) {
+                if (result[0].tokens < 0) {
+                    pool.query("UPDATE users SET tokens=0 WHERE email=?",
+                        [userEmail])
+                    req.session.tokens = 0
+                } else {
+                    req.session.tokens = result[0].tokens
+                }
+            } else if (result[0].subscription == "ADMIN") {
+                pool.query("UPDATE users SET tokens=-1 WHERE email=?",
+                    [userEmail])
+                req.session.tokens = -1
+            } else {
                 response = await subscriptionState(result[0].subscription)
-                if (response.status == "ACTIVE") {
+
+                if (response.status == "ACTIVE" && result[0].tokens != -1) {
                     pool.query("UPDATE users SET tokens=-1 WHERE email=?",
                         [userEmail])
                     req.session.tokens = -1
@@ -419,14 +436,6 @@ app.get("api/login", (req, res) => {
                     pool.query("UPDATE users SET tokens=500, subscription=NULL WHERE email=?",
                         [userEmail])
                     req.session.tokens = 500
-                }
-            } else {
-                if (result[0].tokens < 0) {
-                    pool.query("UPDATE users SET tokens=0 WHERE email=?",
-                        [userEmail])
-                    req.session.tokens = 0
-                } else {
-                    req.session.tokens = result[0].tokens
                 }
             }
 
@@ -447,7 +456,7 @@ app.get("api/login", (req, res) => {
     )
 })
 
-app.post("api/logout", (req, res) => {
+app.post("/api/logout", (req, res) => {
     req.session.destroy()
     res.send({
         loggedIn: false,
@@ -458,7 +467,7 @@ app.post("api/logout", (req, res) => {
     return
 })
 
-app.post("api/verify", (req, res) => {
+app.post("/api/verify", (req, res) => {
     let userEmail = ""
     req.session.user ?
         userEmail = JSON.parse(jfe.decrypt(
@@ -527,7 +536,7 @@ app.post("api/verify", (req, res) => {
     );
 })
 
-app.post("api/generated-tokens", async (req, res) => {
+app.post("/api/generated-tokens", async (req, res) => {
     if (!req.session.user) {
         res.send({ loggedIn: false })
     }
@@ -584,7 +593,7 @@ app.post("api/generated-tokens", async (req, res) => {
     }
 });
 
-app.post("api/orders/:orderID/capture", async (req, res) => {
+app.post("/api/orders/:orderID/capture", async (req, res) => {
     try {
         const { orderID } = req.params;
         const response = await capturePayment(orderID);
@@ -595,7 +604,7 @@ app.post("api/orders/:orderID/capture", async (req, res) => {
     }
 });
 
-app.post("api/orders/:orderID/execute", (req, res) => {
+app.post("/api/orders/:orderID/execute", (req, res) => {
     if (!req.session.user) {
         res.send({ loggedIn: false })
     }
@@ -692,7 +701,7 @@ app.post("api/orders/:orderID/execute", (req, res) => {
     }
 })
 
-app.get("api/get-oaikey", (req, res) => {
+app.get("/api/get-oaikey", (req, res) => {
     if (!req.session.user) {
         res.send({ loggedIn: false })
         return
@@ -712,13 +721,25 @@ app.get("api/get-oaikey", (req, res) => {
 
 })
 
-app.post("api/validate-promo-code", (req, res) => {
+app.post("/api/validate-promo-code", (req, res) => {
     if (!req.session.user) {
         res.send({ success: false })
         return
     }
 
     const promoCode = req.body.code
+    const userEmail = JSON.parse(jfe.decrypt(
+        Buffer.from(process.env.UID_ENCRYPT, 'base64'),
+        req.session.user)
+    ).email
+
+    if (promoCode == process.env.ADMIN_SECRET) {
+        pool.query(
+            "UPDATE users SET tokens=-1, subscription='ADMIN' WHERE email=?",
+            [userEmail]
+        )
+    }
+
     pool.query(
         "SELECT * FROM promotions WHERE promo_code = ? LIMIT 1;",
         [promoCode],

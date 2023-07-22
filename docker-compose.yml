@@ -5,7 +5,7 @@ services:
       context: review-rocket-client
       target: development
     ports:
-      - 3000:3000
+      - 80:80
     volumes:
       - ./review-rocket-client/src:/code/src
       - /code/node_modules
@@ -26,7 +26,6 @@ services:
     env_file: "./review-rocket-server/.env"
     environment:
       - NODE_ENV=development
-    restart: always
     ports:
       - 4000:4000
     volumes:
