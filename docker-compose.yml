@@ -1,6 +1,6 @@
 version: "1.0"
 services:
-  revrock-client:
+  frontend:
     build:
       context: review-rocket-client
       target: development
@@ -16,7 +16,7 @@ services:
     networks:
       - public
 
-  revrock-server:
+  backend:
     build:
       args:
         - NODE_ENV=development
