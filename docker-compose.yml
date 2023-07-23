@@ -32,27 +32,10 @@ services:
       - ./review-rocket-server/src:/code/src:ro
       - ./review-rocket-server/package.json:/code/package.json
       - ./review-rocket-server/package-lock.json:/code/package-lock.json
-    depends_on:
-      - revrock-db
     networks:
       - public
-      - private
-
-  revrock-db:
-    image: mysql:8.0.27
-    command: '--authentication_policy=caching_sha2_password --init-file /data/application/init.sql'
-    restart: always
-    volumes:
-      - ./mysql/data:/var/lib/mysql
-      - ./mysql/init.sql:/data/application/init.sql
-    environment:
-      - MYSQL_DATABASE=revrock-mysql
-      - MYSQL_ROOT_PASSWORD=j92MfIdFnz8Ne8vOS21fYZf35iGZaf5E
-    networks:
       - private
 
 networks:
   public:
   private:
-volumes:
-  db-data:
