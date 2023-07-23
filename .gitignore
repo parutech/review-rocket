@@ -1,5 +1,6 @@
 #VS Code
 *.code-workspace
+kompose.exe
 
 # Logs
 logs
