@@ -9,7 +9,7 @@ function Logout() {
 
     Axios.defaults.withCredentials = true;
 
-    Axios.post('https://review-rocket.fr:4000/api/logout').then((res) => {
+    Axios.post('https://review-rocket.fr/api/logout').then((res) => {
         // console.log(res)
         if (!res.data.loggedIn) {
             setSessionParameters({

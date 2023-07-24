@@ -8,7 +8,7 @@ function Header() {
     Axios.defaults.withCredentials = true;
 
     useEffect(() => {
-        Axios.get('https://review-rocket.fr:4000/api/login').then((res) => {
+        Axios.get('https://review-rocket.fr/api/login').then((res) => {
             setSessionParameters({
                 isLogged: res.data.loggedIn,
                 isVerified: res.data.verified,

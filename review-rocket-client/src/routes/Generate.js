@@ -274,7 +274,7 @@ function Generate() {
             }
         }, 1000);
 
-        Axios.get('https://review-rocket.fr:4000/api/get-oaikey').then(async (res) => {
+        Axios.get('https://review-rocket.fr/api/get-oaikey').then(async (res) => {
             let openai_key = res.data.openai_key
 
             const configuration = new Configuration({
@@ -374,7 +374,7 @@ function Generate() {
                     throw new Error('Could not generate the required reviews');
                 }
 
-                Axios.post('https://review-rocket.fr:4000/api/generated-tokens', { quantity: amount }).then(async (res) => {
+                Axios.post('https://review-rocket.fr/api/generated-tokens', { quantity: amount }).then(async (res) => {
                     if (!res.data.executed) {
                         throw new Error('Could not withdraw tokens from account');
                     }

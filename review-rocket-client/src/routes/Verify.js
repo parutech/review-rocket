@@ -43,7 +43,7 @@ function Verify() {
         )
     }
 
-    Axios.post('https://review-rocket.fr:4000/api/verify', {
+    Axios.post('https://review-rocket.fr/api/verify', {
         userEmail: searchParams.get('email'),
         verificationKey: searchParams.get('key'),
     }).then((res) => {

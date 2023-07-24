@@ -19,7 +19,7 @@ function Login() {
 
     const captchaValidation = () => {
         captchaRef.current.getResponse().then(res => {
-            Axios.post('https://review-rocket.fr:4000/api/captcha', {
+            Axios.post('https://review-rocket.fr/api/captcha', {
                 token: res
             }).then((response) => {
                 setCaptchaSuccess(response.data.verification)
@@ -34,7 +34,7 @@ function Login() {
         let inputs = document.querySelectorAll("input")
         inputs.forEach(element => element.setAttribute("disabled", ''))
 
-        Axios.post('https://review-rocket.fr:4000/api/login', {
+        Axios.post('https://review-rocket.fr/api/login', {
             userEmail: emailLogin,
             userPass: passLogin,
             captcha: captchaSuccess

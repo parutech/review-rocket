@@ -34,7 +34,7 @@ function Account() {
 
         if (newPromoCode && newPromoCode !== promoCode) {
             setPromoCode(newPromoCode)
-            Axios.post('https://review-rocket.fr:4000/api/validate-promo-code', {
+            Axios.post('https://review-rocket.fr/api/validate-promo-code', {
                 code: newPromoCode
             }).then(async (res) => {
                 // console.log(newPromoCode, res)
@@ -60,7 +60,7 @@ function Account() {
         inputs.forEach(element => element.setAttribute("disabled", ''))
 
         if (passRegister === passConfirmRegister) {
-            Axios.post('https://review-rocket.fr:4000/api/change-password', {
+            Axios.post('https://review-rocket.fr/api/change-password', {
                 userPass: passRegister
             }).then((res) => {
                 if (res.data.success) {
@@ -82,7 +82,7 @@ function Account() {
         inputs.forEach(element => element.setAttribute("disabled", ''))
 
         if (window.confirm("Do you really want to delete your account?")) {
-            Axios.post('https://review-rocket.fr:4000/api/delete-account', {
+            Axios.post('https://review-rocket.fr/api/delete-account', {
                 userPass: deletePass
             }).then((res) => {
                 if (!res.data.success) {

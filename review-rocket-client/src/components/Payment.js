@@ -62,7 +62,7 @@ const ButtonWrapper = ({ showSpinner, refillBundle }) => {
                     onApprove={async (data, actions) => {
                         alert("Your subscription has been successfully approved"); // You can add optional success message for the subscriber here
 
-                        Axios.post(`https://review-rocket.fr:4000/api/orders/${data.subscriptionID}/execute`, {
+                        Axios.post(`https://review-rocket.fr/api/orders/${data.subscriptionID}/execute`, {
                             tokens: refillBundle["tokens"],
                         }).then((res) => {
                             // console.log(res)
@@ -138,7 +138,7 @@ const ButtonWrapper = ({ showSpinner, refillBundle }) => {
                             // const transaction = details.purchase_units[0].payments.captures[0];
                             // alert('Transaction ' + transaction.status + ': ' + transaction.id + 'See console for all available details');
 
-                            Axios.post(`https://review-rocket.fr:4000/api/orders/${data.orderID}/execute`, {
+                            Axios.post(`https://review-rocket.fr/api/orders/${data.orderID}/execute`, {
                                 tokens: refillBundle["tokens"],
                             }).then((res) => {
                                 // console.log(res)

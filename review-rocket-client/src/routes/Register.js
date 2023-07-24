@@ -20,7 +20,7 @@ function Register() {
 
     const captchaValidation = () => {
         captchaRef.current.getResponse().then(res => {
-            Axios.post('https://review-rocket.fr:4000/api/captcha', {
+            Axios.post('https://review-rocket.fr/api/captcha', {
                 token: res
             }).then((response) => {
                 setCaptchaSuccess(response.data.verification)
@@ -37,7 +37,7 @@ function Register() {
         inputs.forEach(element => element.setAttribute("disabled", ''))
 
         if (passRegister === passConfirmRegister) {
-            Axios.post('https://review-rocket.fr:4000/api/register', {
+            Axios.post('https://review-rocket.fr/api/register', {
                 userEmail: emailRegister,
                 userPass: passRegister,
                 captcha: captchaSuccess
