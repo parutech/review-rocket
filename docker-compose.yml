@@ -10,7 +10,7 @@ services:
       - ./review-rocket-client/src:/code/src
       - /code/node_modules
     depends_on:
-      - revrock-server
+      - backend
     stdin_open: true
     tty: true
     networks:
