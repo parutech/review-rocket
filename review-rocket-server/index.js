@@ -164,6 +164,14 @@ pool.getConnection(function (err, connection) {
     if (err) throw err; // not connected!
 })
 
+app.post("/api/", (req, res) => {
+    res.send({ healthy: true })
+});
+
+app.post("/", (req, res) => {
+    res.send({ healthy: true })
+});
+
 app.post("/api/captcha", async (req, res) => {
     const token = req.body.token;
 
