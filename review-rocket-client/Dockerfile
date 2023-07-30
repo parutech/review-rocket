@@ -1,37 +1,16 @@
-# syntax=docker/dockerfile:1.4
-
-FROM node:18-alpine AS development
-
-ENV CI=true
-ENV PORT=80
-
-WORKDIR /code
-COPY package.json /code/package.json
-COPY package-lock.json /code/package-lock.json
-RUN npm ci
-COPY . /code
-
-CMD [ "npm", "start" ]
-
-FROM development AS builder
-
+# Use an official Node runtime as a parent image
+FROM node:18-alpine
+# Set the working directory to /app
+WORKDIR /app
+# Copy package.json and package-lock.json to the container
+COPY package*.json ./
+# Install dependencies
+RUN npm install
+# Copy the rest of the application code to the container
+COPY . .
+# Build the production version of the application
 RUN npm run build
-
-FROM development as dev-envs
-RUN <<EOF
-apt-get update
-apt-get install -y --no-install-recommends git
-EOF
-
-RUN <<EOF
-useradd -s /bin/bash -m vscode
-groupadd docker
-usermod -aG docker vscode
-EOF
-# install Docker tools (cli, buildx, compose)
-COPY --from=gloursdocker/docker / /
-CMD [ "npm", "start" ]
-
-FROM nginx:1.13-alpine
-
-COPY --from=builder /code/build /usr/share/nginx/html
+# Expose port 3000 to the outside world
+EXPOSE 3000
+# Run the command to start the server
+CMD ["npm", "start"]
