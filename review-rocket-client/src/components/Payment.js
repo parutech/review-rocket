@@ -106,7 +106,7 @@ const ButtonWrapper = ({ showSpinner, refillBundle }) => {
 
                     onApprove={async (data, actions) => {
                         try {
-                            const response = await fetch(`/orders/${data.orderID}/capture`, {
+                            const response = await fetch(`/api/orders/${data.orderID}/capture`, {
                                 method: "POST"
                             });
 
