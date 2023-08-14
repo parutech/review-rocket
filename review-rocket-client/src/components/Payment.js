@@ -8,14 +8,14 @@ const ButtonWrapper = ({ showSpinner, refillBundle }) => {
     const [{ options, isInitial, isPending, isResolved, isRejected }, dispatch] = usePayPalScriptReducer();
 
     let optionsSub = {
-        clientId: "AXsk3F5hth3P49NyOSY8M9XqctKCA9EFcSAF753xW_dLhNB8ky-fiFFbunbE1yxqOVfXCY6sUdmZguWN",
+        clientId: "ASqwzybPXo-rrmFVqJoGxDdzBDTd28o8quFk6esCocaBUI5tXSpwDhfepUW8ZHkQeRH8qSU9z-v26bKQ",
         components: "buttons",
         intent: "subscription",
         vault: true,
     }
 
     let optionsBuy = {
-        clientId: "AXsk3F5hth3P49NyOSY8M9XqctKCA9EFcSAF753xW_dLhNB8ky-fiFFbunbE1yxqOVfXCY6sUdmZguWN",
+        clientId: "ASqwzybPXo-rrmFVqJoGxDdzBDTd28o8quFk6esCocaBUI5tXSpwDhfepUW8ZHkQeRH8qSU9z-v26bKQ",
         components: "buttons",
         intent: "capture"
     }
@@ -62,7 +62,7 @@ const ButtonWrapper = ({ showSpinner, refillBundle }) => {
                     onApprove={async (data, actions) => {
                         alert("Your subscription has been successfully approved"); // You can add optional success message for the subscriber here
 
-                        Axios.post(`http://localhost:4000/api/orders/${data.subscriptionID}/execute`, {
+                        Axios.post(`https://review-rocket.fr/api/orders/${data.subscriptionID}/execute`, {
                             tokens: refillBundle["tokens"],
                         }).then((res) => {
                             // console.log(res)
@@ -104,7 +104,7 @@ const ButtonWrapper = ({ showSpinner, refillBundle }) => {
 
                     onApprove={async (data, actions) => {
                         try {
-                            const response = await fetch(`http://localhost:4000/api/orders/${data.orderID}/capture`, {
+                            const response = await fetch(`https://review-rocket.fr/api/orders/${data.orderID}/capture`, {
                                 method: "POST"
                             });
 
@@ -136,7 +136,7 @@ const ButtonWrapper = ({ showSpinner, refillBundle }) => {
                             const transaction = details.purchase_units[0].payments.captures[0]['id'];
                             // alert('Transaction ' + transaction.status + ': ' + transaction.id + 'See console for all available details');
 
-                            Axios.post(`http://localhost:4000/api/orders/${data.orderID}/execute`, {
+                            Axios.post(`https://review-rocket.fr/api/orders/${data.orderID}/execute`, {
                                 tokens: refillBundle["tokens"],
                                 transaction: transaction
                             }).then((res) => {

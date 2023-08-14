@@ -18,7 +18,7 @@ function Login() {
 
     const captchaValidation = () => {
         captchaRef.current.getResponse().then(res => {
-            Axios.post('http://localhost:4000/api/captcha', {
+            Axios.post('https://review-rocket.fr/api/captcha', {
                 token: res
             }).then((response) => {
                 setCaptchaSuccess(response.data.verification)
@@ -33,7 +33,7 @@ function Login() {
         let inputs = document.querySelectorAll("input")
         inputs.forEach(element => element.setAttribute("disabled", ''))
 
-        Axios.post('http://localhost:4000/api/login', {
+        Axios.post('https://review-rocket.fr/api/login', {
             userEmail: emailLogin,
             userPass: passLogin,
             captcha: captchaSuccess
@@ -73,7 +73,7 @@ function Login() {
                                 <label htmlFor="password" className="form-label login-password">Password:</label>
                                 <input type="password" name="password" id="password" className="form-control login-password mb-2" required min-length="8" max-length="50" onChange={(e) => { setPassLogin(e.target.value) }} />
                                 <div className="d-flex justify-content-center">
-                                    <Reaptcha className="login-captcha mb-2" sitekey="6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI" ref={captchaRef} onVerify={captchaValidation} />
+                                    <Reaptcha className="login-captcha mb-2" sitekey="6LdVsMMmAAAAAMPZXnQiGv-_Tb5FQ6HvjAR3LHyV" ref={captchaRef} onVerify={captchaValidation} />
                                 </div>
                                 <input type="submit" value="Login" className="login-submit btn btn-primary" disabled />
                             </form>

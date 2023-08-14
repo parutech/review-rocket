@@ -23,7 +23,7 @@ function Account() {
     const [referralState, setReferralState] = useState({})
 
     useEffect(() => {
-        Axios.get('http://localhost:4000/api/referral-state').then((res) => {
+        Axios.get('https://review-rocket.fr/api/referral-state').then((res) => {
             if (!res.data.success) {
                 setReferralState({})
             }
@@ -44,7 +44,7 @@ function Account() {
 
         if (newPromoCode && newPromoCode !== promoCode) {
             setPromoCode(newPromoCode)
-            Axios.post('http://localhost:4000/api/validate-promo-code', {
+            Axios.post('https://review-rocket.fr/api/validate-promo-code', {
                 code: newPromoCode
             }).then(async (res) => {
                 // console.log(newPromoCode, res)
@@ -65,7 +65,7 @@ function Account() {
     async function requestPayout(payoutAmount) {
         let button = document.getElementById("btn-payout");
         button.setAttribute("disabled", '')
-        Axios.post('http://localhost:4000/api/request-payout', {
+        Axios.post('https://review-rocket.fr/api/request-payout', {
             amount: payoutAmount
         }).then(async (res) => {
             button.removeAttribute("disabled")
@@ -82,7 +82,7 @@ function Account() {
     function resendVerification() {
         let button = document.getElementById("btn-email-verification");
         button.setAttribute("disabled", '')
-        Axios.get('http://localhost:4000/api/resend-verification').then(async (res) => {
+        Axios.get('https://review-rocket.fr/api/resend-verification').then(async (res) => {
             button.removeAttribute("disabled")
             if (!res.data.success) {
                 window.alert("Could not send verification email.");
@@ -94,7 +94,7 @@ function Account() {
     }
 
     function unsubscribe() {
-        Axios.get('http://localhost:4000/api/unsubscribe').then(async (res) => {
+        Axios.get('https://review-rocket.fr/api/unsubscribe').then(async (res) => {
             if (!res.data.success) {
                 window.alert("Could not unsubscribe.");
                 return
@@ -113,7 +113,7 @@ function Account() {
         inputs.forEach(element => element.setAttribute("disabled", ''))
 
         if (passRegister === passConfirmRegister) {
-            Axios.post('http://localhost:4000/api/change-password', {
+            Axios.post('https://review-rocket.fr/api/change-password', {
                 userPass: passRegister
             }).then((res) => {
                 if (res.data.success) {
@@ -135,7 +135,7 @@ function Account() {
         inputs.forEach(element => element.setAttribute("disabled", ''))
 
         if (window.confirm("Do you really want to delete your account?")) {
-            Axios.post('http://localhost:4000/api/delete-account', {
+            Axios.post('https://review-rocket.fr/api/delete-account', {
                 userPass: deletePass
             }).then((res) => {
                 if (!res.data.success) {

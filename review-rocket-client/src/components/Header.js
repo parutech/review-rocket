@@ -10,13 +10,13 @@ function Header() {
 
     useEffect(() => {
         if (searchParams.get('ref') != null) {
-            Axios.post('http://localhost:4000/api/set-referrer', {
+            Axios.post('https://review-rocket.fr/api/set-referrer', {
                 referrer: searchParams.get('ref')
             })
             searchParams.delete('ref')
             setSearchParams(searchParams)
         }
-        Axios.get('http://localhost:4000/api/login').then((res) => {
+        Axios.get('https://review-rocket.fr/api/login').then((res) => {
             let newSessionParameters = {
                 ...sessionParameters,
                 user: res.data.user,

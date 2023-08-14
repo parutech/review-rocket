@@ -20,7 +20,7 @@ function Register() {
 
     const captchaValidation = () => {
         captchaRef.current.getResponse().then(res => {
-            Axios.post('http://localhost:4000/api/captcha', {
+            Axios.post('https://review-rocket.fr/api/captcha', {
                 token: res
             }).then((response) => {
                 setCaptchaSuccess(response.data.verification)
@@ -37,7 +37,7 @@ function Register() {
         inputs.forEach(element => element.setAttribute("disabled", ''))
 
         if (passRegister === passConfirmRegister) {
-            Axios.post('http://localhost:4000/api/register', {
+            Axios.post('https://review-rocket.fr/api/register', {
                 userEmail: emailRegister,
                 userPass: passRegister,
                 captcha: captchaSuccess,
@@ -80,7 +80,7 @@ function Register() {
                                     Your password must be 8-50 characters long, contain letters and numbers, and must not contain spaces, special characters, or emoji.
                                 </div>
                                 <div className="d-flex justify-content-center">
-                                    <Reaptcha className="register-captcha mb-2" sitekey="6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI" ref={captchaRef} onVerify={captchaValidation} />
+                                    <Reaptcha className="register-captcha mb-2" sitekey="6LdVsMMmAAAAAMPZXnQiGv-_Tb5FQ6HvjAR3LHyV" ref={captchaRef} onVerify={captchaValidation} />
                                 </div>
                                 <input type="submit" value="Register" className="register-submit btn btn-primary" disabled />
                             </form>

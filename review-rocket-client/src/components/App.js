@@ -56,16 +56,6 @@ export default function App() {
 
     Axios.defaults.withCredentials = true;
 
-    // useEffect(() => {
-    //     Axios.get('http://localhost:4000/api/login').then((res) => {
-    //         setSessionParameters({
-    //             isLogged: res.data.loggedIn,
-    //             isVerified: res.data.verified,
-    //             tokens: res.data.tokens,
-    //         })
-    //     })
-    // }, [])
-
     return (
         <ContextData.Provider value={sessionValues}>
             <RouterProvider router={router} />

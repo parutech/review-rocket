@@ -285,7 +285,7 @@ function Generate() {
         }, 250);
 
         const requests = quantities.map(async (quantity) => {
-            let api_response = await Axios.post('http://localhost:4000/api/get-reviews', {
+            let api_response = await Axios.post('https://review-rocket.fr/api/get-reviews', {
                 productHandle: productHandle,
                 productTitle: productTitle,
                 quantity: quantity,
@@ -316,7 +316,7 @@ function Generate() {
                 counterETA += missingAmount
 
                 const missingReviews = [missingAmount].map(async (quantity) => {
-                    let api_response = await Axios.post('http://localhost:4000/api/get-reviews', {
+                    let api_response = await Axios.post('https://review-rocket.fr/api/get-reviews', {
                         productHandle: productHandle,
                         productTitle: productTitle,
                         quantity: quantity,
@@ -347,7 +347,7 @@ function Generate() {
                 throw new Error('Could not generate the required reviews');
             }
 
-            Axios.post('http://localhost:4000/api/generated-tokens', { quantity: amount }).then(async (res) => {
+            Axios.post('https://review-rocket.fr/api/generated-tokens', { quantity: amount }).then(async (res) => {
                 if (!res.data.executed) {
                     throw new Error('Could not withdraw tokens from account');
                 }
