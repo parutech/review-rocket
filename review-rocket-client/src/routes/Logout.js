@@ -1,13 +1,12 @@
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { ContextData } from "../components/App";
-import { Navigate, useNavigate } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
 import React from 'react';
 import Axios from 'axios';
 
 function Logout() {
     const { sessionParameters, setSessionParameters } = React.useContext(ContextData);
-    const navigate = useNavigate();
 
     Axios.defaults.withCredentials = true;
 

@@ -6,8 +6,8 @@ import Axios from 'axios';
 import { ContextData } from "../components/App";
 
 function Verify() {
-    const { sessionParameters, setSessionParameters } = React.useContext(ContextData);
-    const [searchParams, setSearchParams] = useSearchParams();
+    const sessionParameters = React.useContext(ContextData).sessionParameters;
+    const searchParams = useSearchParams()[0];
     const [verificationSuccess, setVerificationSuccess] = useState(undefined)
 
     Axios.defaults.withCredentials = true;

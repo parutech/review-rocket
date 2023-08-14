@@ -5,7 +5,7 @@ import { PayPalScriptProvider, PayPalButtons, usePayPalScriptReducer, FUNDING } 
 const ButtonWrapper = ({ showSpinner, refillBundle }) => {
     // usePayPalScriptReducer can be use only inside children of PayPalScriptProviders
     // This is the main reason to wrap the PayPalButtons in a new component
-    const [{ options, isInitial, isPending, isResolved, isRejected }, dispatch] = usePayPalScriptReducer();
+    const [{ options, isPending }, dispatch] = usePayPalScriptReducer();
 
     let optionsSub = {
         clientId: "ASqwzybPXo-rrmFVqJoGxDdzBDTd28o8quFk6esCocaBUI5tXSpwDhfepUW8ZHkQeRH8qSU9z-v26bKQ",
