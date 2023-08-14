@@ -4,10 +4,9 @@ import { ContextData } from "../components/App";
 import { Navigate } from "react-router-dom";
 import Axios from 'axios';
 import React, { useState } from 'react';
-import { Configuration, OpenAIApi } from 'openai';
 
 function Generate() {
-    const { sessionParameters, setSessionParameters } = React.useContext(ContextData)
+    const sessionParameters = React.useContext(ContextData).sessionParameters
     const maxTokens = (sessionParameters.tokens > 200 || sessionParameters.tokens < 0) ?
         "200"
         :
@@ -37,7 +36,7 @@ function Generate() {
 
     const generationFormPage = () => {
         return (
-            <div className="container generate-container pt-5">
+            <div className="container generate-container">
                 <form className="form form-generate" onSubmit={(e) => { generationSubmit(e) }}>
                     <div><h2 className="mb-0">Preset</h2></div>
                     <label htmlFor="keywords" className="form-label generate-keywords">Configuration</label>
@@ -49,7 +48,9 @@ function Generate() {
                         <input type="text" className="form-control" id="input-title" placeholder="Example: Midnight Leather Handbag" required onChange={(e) => { setProductTitle(e.target.value) }} />
                     </div>
 
-                    <div className="pt-5"><h2 className="mb-0">Step 1</h2></div>
+                    <hr className="hr-blurry my-5" />
+
+                    <h2 className="mb-0">Step 1</h2>
                     <label htmlFor="amount" className="form-label generate-amount">Amount</label>
                     <div className="form-text">
                         Select the amount of reviews you want to generate (max: 200) <br />
@@ -58,7 +59,9 @@ function Generate() {
                     <input type="range" className="form-range" id="input-amount" min="5" max={maxTokens} step="5" defaultValue="5" required onChange={(e) => { setAmount(e.target.value) }} />
                     <div>Generate {amount} review(s)</div>
 
-                    <div className="pt-5"><h2 className="mb-0">Step 2</h2></div>
+                    <hr className="hr-blurry my-5" />
+
+                    <h2 className="mb-0">Step 2</h2>
                     <label htmlFor="language" className="form-label generate-language">Language</label>
                     <div className="form-text">
                         Select the country in which your reviews are written
@@ -71,14 +74,18 @@ function Generate() {
                         <option value="DE">Germany</option>
                     </select>
 
-                    <div className="pt-5"><h2 className="mb-0">Step 3</h2></div>
+                    <hr className="hr-blurry my-5" />
+
+                    <h2 className="mb-0">Step 3</h2>
                     <label htmlFor="keywords" className="form-label generate-keywords">Keywords</label>
                     <div className="form-text">
                         Add keywords describing your product, in lowercase and separated by commas
                     </div>
                     <input type="text" className="form-control" id="input-keywords" placeholder="Example: black,leather,handbag,high-quality,luxurious" required onChange={(e) => { generationKeywordsValidation(e) }} />
 
-                    <div className="pt-5"><h2 className="mb-0">Step 4</h2></div>
+                    <hr className="hr-blurry my-5" />
+
+                    <h2 className="mb-0">Step 4</h2>
                     <label htmlFor="gender" className="form-label generate-gender">Demographic</label>
                     <div className="form-text">
                         Select the age and gender range of the people writing your reviews
@@ -97,7 +104,9 @@ function Generate() {
                         </select>
                     </div>
 
-                    <div className="pt-5"><h2 className="mb-0">Step 5</h2></div>
+                    <hr className="hr-blurry my-5" />
+
+                    <h2 className="mb-0">Step 5</h2>
                     <label htmlFor="time-period" className="form-label generate-time-period">Time period</label>
                     <div className="form-text">
                         Select the time period during which your reviews are written
@@ -120,7 +129,7 @@ function Generate() {
 
     const waitForReviewsPage = () => {
         return (
-            <div className="container pt-5">
+            <div className="container">
                 <div className="card" aria-hidden="true">
                     <div className="card-header">
                         Your reviews
@@ -150,7 +159,7 @@ function Generate() {
 
     const downloadReviewsPage = () => {
         return (
-            <div className="container pt-5">
+            <div className="container">
                 <div className="card" aria-hidden="true">
                     <div className="card-header">
                         Your reviews
@@ -188,7 +197,7 @@ function Generate() {
 
     const errorPage = () => {
         return (
-            <div className="container pt-5">
+            <div className="container">
                 <div className="card" aria-hidden="true">
                     <div className="card-header">
                         Your reviews
@@ -197,7 +206,7 @@ function Generate() {
                         <p className="card-text">
                             An issue has occured, and we could not generate your requested reviews <br />
                             No tokens have been deduced from your account <br />
-                            Please retry later or contact the support if the issue is reoccuring
+                            Please retry later and contact the support if the issue is reoccuring
                         </p>
                     </div>
                     <button className="btn btn-primary" onClick={() => { window.location.reload() }}>
@@ -255,16 +264,17 @@ function Generate() {
         e.preventDefault()
         setIsSubmitted(true)
 
+        const batch_size = 50
         const language = countryCodeToLanguage[countryCode]
-        const quotient = Math.floor(amount / 15)
-        const last_batch = amount % 15
-        const quantities = Array(quotient).fill(15)
+        const quotient = Math.floor(amount / batch_size)
+        const last_batch = amount % batch_size
+        const quantities = Array(quotient).fill(batch_size)
         if (last_batch > 0) { quantities.push(last_batch) }
 
         let counterValue = 0
-        let counterETA = 40
+        let counterETA = Math.ceil(Math.max(batch_size * (quotient > 0), last_batch) * 1.5)
         const counterUp = setInterval(function () {
-            counterValue++;
+            counterValue += 0.25;
             let counterPercent = counterValue * 100 / counterETA
             if (counterPercent < 100) {
                 document.getElementById('progress-bar').style.width = counterPercent + '%'
@@ -272,148 +282,122 @@ function Generate() {
             else {
                 clearInterval(counterUp);
             }
-        }, 1000);
+        }, 250);
 
-        Axios.get('https://review-rocket.fr/api/get-oaikey').then(async (res) => {
-            let openai_key = res.data.openai_key
+        const requests = quantities.map(async (quantity) => {
+            let api_response = await Axios.post('http://localhost:4000/api/get-reviews', {
+                productHandle: productHandle,
+                productTitle: productTitle,
+                quantity: quantity,
+                language: language,
+                keywords: keywords,
+                gender: gender,
+                age: age,
+                periodStart: periodStart,
+                periodEnd: periodEnd,
+                countryCode: countryCode
+            })
 
-            const configuration = new Configuration({
-                apiKey: openai_key,
+            return api_response
+        });
+
+        try {
+            let results = []
+            const responses = await Promise.allSettled(requests);
+            responses.forEach((item) => {
+                if (item.status === "fulfilled") {
+                    results.push(...item.value.data.results)
+                }
             });
-            const openai = new OpenAIApi(configuration);
 
-            const requests = quantities.map(async (quantity) => {
-                let userPrompt = 'Generate a JSON-formatted answer containing short, belivable reviews using the given information.\
-                The information will follow the JSON format, and will be composed of the amount of reviews to generate, the language the reviews are written in, the keywords describing the product reviewed, the age and gender of the people writing the reviews, and the start and end of the period in which the reviews are written. This is an example of such information:\
-                {"quantity":"3","language":"english","keywords":["handbag","leather","black","high-quality","luxurious"],"gender":"male","age":"senior"}\
-                The output should be JSON-formatted and contain the following fields : author (First and last names of the person writing the review), body_text (The review itself). The keywords should be rarely used. The reviews should be short and reflect one quality that the product may have. The reviews must not contain commas. This is an example of such an answer:\
-                {"reviews":[{"author":"John Smith","body_text":"I recently purchased this handbag and I must say it exceeded my expectations. The leather is top-notch and the black color gives it a sleek look."},{"author":"Robert Johnson","body_text":"Very good. Highly recommended!"},{"author":"Michael Williams","body_text":"I\'m impressed by the handbag\'s quality."}]}\
-                Here is the information to use: '+ JSON.stringify({ quantity, language, keywords, gender, age })
+            let missingAmount = amount - results.length
+            let retries = 0
+            while (missingAmount > 0 && retries <= 5) {
+                counterETA += missingAmount
 
-                return await openai.createChatCompletion({
-                    model: "gpt-3.5-turbo-16k",
-                    messages: [{ role: "user", content: userPrompt }],
+                const missingReviews = [missingAmount].map(async (quantity) => {
+                    let api_response = await Axios.post('http://localhost:4000/api/get-reviews', {
+                        productHandle: productHandle,
+                        productTitle: productTitle,
+                        quantity: quantity,
+                        language: language,
+                        keywords: keywords,
+                        gender: gender,
+                        age: age,
+                        periodStart: periodStart,
+                        periodEnd: periodEnd,
+                        countryCode: countryCode
+                    })
+
+                    return api_response
                 });
-            });
 
-            try {
-                let results = []
-                const responses = await Promise.allSettled(requests);
-                responses.map((item) => {
+                const response = await Promise.allSettled(missingReviews);
+                response.forEach((item) => {
                     if (item.status === "fulfilled") {
-                        try {
-                            let jsonResults = JSON.parse(item.value.data.choices[0].message.content.replace(/,(?=\s*?[}\]])/g, '')).reviews
-                            jsonResults.map((result) => {
-                                result["product_handle"] = productHandle;
-                                result["title"] = productTitle;
-                                result["rating"] = Math.round(Math.random() + 4)
-                                result["email"] = result["author"].toLowerCase().split(" ").join(".") + "@mail.com"
-                                result["body_text"] = result["body_text"].replace(',', '.')
-                                result["body_urls"] = ""
-                                let dateStart = new Date(periodStart)
-                                let dateEnd = new Date(periodEnd)
-                                let newDateString = new Date(dateStart.getTime() + Math.random() * (dateEnd.getTime() - dateStart.getTime())).toLocaleString('en-GB')
-                                result["created_at"] = newDateString.substring(0, newDateString.length - 3).replace(',', '')
-                                result["avatar"] = ""
-                                result["country_code"] = countryCode
-                                result["status"] = "enable"
-                                result["featured"] = "0"
-                                results.push(result)
-                            })
-                        } catch (e) { }
+                        results.push(...item.value.data.results)
                     }
                 });
 
-                let missingAmount = amount - results.length
-                let retries = 0
-                while (missingAmount > 0 && retries <= 5) {
-                    counterETA += 15
-                    const missingReviews = async (missing) => {
-                        let missingUserPrompt = 'Generate a JSON-formatted answer containing short, belivable reviews using the given information.\
-                        The information will follow the JSON format, and will be composed of the amount of reviews to generate, the language the reviews are written in, the keywords describing the product reviewed, the age and gender of the people writing the reviews, and the start and end of the period in which the reviews are written. This is an example of such information:\
-                        {"quantity":"3","language":"english","keywords":["handbag","leather","black","high-quality","luxurious"],"gender":"male","age":"senior"}\
-                        The output should be JSON-formatted and contain the following fields : author (First and last names of the person writing the review), body_text (The review itself). The keywords should be rarely used. The reviews should be short and reflect one quality that the product may have. The reviews must not contain commas. This is an example of such an answer:\
-                        {"reviews":[{"author":"John Smith","body_text":"I recently purchased this handbag and I must say it exceeded my expectations. The leather is top-notch and the black color gives it a sleek look."},{"author":"Robert Johnson","body_text":"Highly recommended!"},{"author":"Michael Williams","body_text":"I\'m impressed by the handbag\'s quality."}]}\
-                        Here is the information to use: '+ JSON.stringify({ missing, language, keywords, gender, age })
-
-                        return await openai.createChatCompletion({
-                            model: "gpt-3.5-turbo-16k",
-                            messages: [{ role: "user", content: missingUserPrompt }],
-                        });
-                    }
-
-                    const response = await Promise.allSettled([missingReviews(missingAmount)]);
-                    if (response[0].status === "fulfilled") {
-                        try {
-                            let jsonResults = JSON.parse(response[0].value.data.choices[0].message.content.replace(/,(?=\s*?[}\]])/g, '')).reviews
-                            jsonResults.map((result) => {
-                                result["product_handle"] = productHandle;
-                                result["title"] = productTitle;
-                                result["rating"] = Math.round(Math.random() + 4)
-                                result["email"] = result["author"].toLowerCase().split(" ").join(".") + "gmail.com"
-                                result["body_text"] = result["body_text"].replace(',', '.')
-                                result["body_urls"] = ""
-                                let dateStart = new Date(periodStart)
-                                let dateEnd = new Date(periodEnd)
-                                let newDateString = new Date(dateStart.getTime() + Math.random() * (dateEnd.getTime() - dateStart.getTime())).toLocaleString('en-GB')
-                                result["created_at"] = newDateString.substring(0, newDateString.length - 3).replace(',', '')
-                                result["avatar"] = ""
-                                result["country_code"] = countryCode
-                                result["status"] = "enable"
-                                result["featured"] = "0"
-                                results.push(result)
-                            })
-                        } catch (e) { }
-                    }
-
-                    missingAmount = amount - results.length
-                    retries += 1
-                }
-
-                if (missingAmount !== 0) {
-                    throw new Error('Could not generate the required reviews');
-                }
-
-                Axios.post('https://review-rocket.fr/api/generated-tokens', { quantity: amount }).then(async (res) => {
-                    if (!res.data.executed) {
-                        throw new Error('Could not withdraw tokens from account');
-                    }
-
-                    let resultsCsv = JSON2CSV(results.slice(0, amount))
-                    setCsvData(resultsCsv)
-                    return
-                })
-            } catch (err) {
-                // console.log({ error: String(err) });
+                missingAmount = amount - results.length
+                retries += 1
             }
 
-            clearInterval(counterUp)
-            setIsGenerated(true)
-        })
+            if (missingAmount > 0) {
+                throw new Error('Could not generate the required reviews');
+            }
+
+            Axios.post('http://localhost:4000/api/generated-tokens', { quantity: amount }).then(async (res) => {
+                if (!res.data.executed) {
+                    throw new Error('Could not withdraw tokens from account');
+                }
+
+                let resultsCsv = JSON2CSV(results.slice(0, amount))
+                setCsvData(resultsCsv)
+                return
+            })
+        } catch (err) {
+            // console.log({ error: String(err) });
+        }
+
+        clearInterval(counterUp)
+        setIsGenerated(true)
     }
 
     if (sessionParameters.isLogged === undefined) {
         return (
-            <div className="login-page text-center p-5">
-                Checking your credentials...
+            <div className='body'>
+                <Header />
+                <div className="generate-page container text-center p-5" >
+                    Checking your credentials...
+                </div>
+                <Footer />
             </div>
         )
     }
 
     if (!sessionParameters.isLogged) {
         return (
-            <div className="login-page text-center p-5">
-                Checking your credentials...
-                <Navigate replace to={"/login"} />
+            <div className='body'>
+                <Header />
+                <div className="account-page container text-center py-5">
+                    Checking your credentials...
+                </div>
+                <Navigate replace to="/logout" />
+                <Footer />
             </div>
         )
     }
 
     if (!sessionParameters.isVerified) {
         return (
-            <div className="login-page text-center p-5">
-                Checking your credentials...
-                <Navigate replace to={"/account"} />
+            <div className='body'>
+                <Header />
+                <div className="generate-page container text-center p-5">
+                    Checking your credentials...
+                </div>
+                <Navigate replace to="/account" />
+                <Footer />
             </div>
         )
     }
@@ -427,6 +411,7 @@ function Generate() {
                     <div>
                         <h1>Generate</h1>
                     </div>
+                    <hr className="hr-blurry my-5" />
                     {maxTokens >= 5 ?
                         !isSubmitted ?
                             generationFormPage()

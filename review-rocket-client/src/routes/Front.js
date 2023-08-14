@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 
 function Front() {
     const navigate = useNavigate();
+
     return (
         <div>
             <Header />

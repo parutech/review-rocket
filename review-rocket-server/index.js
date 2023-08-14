@@ -3,6 +3,7 @@ const axios = require('axios')
 const nodemailer = require('nodemailer')
 const handlebars = require('handlebars')
 const morgan = require("morgan")
+const { Configuration, OpenAIApi } = require("openai");
 
 const mysql = require("mysql2");
 const cors = require("cors");
@@ -18,8 +19,8 @@ const saltRounds = 12;
 const jwt = require("jsonwebtoken");
 const bodyParser = require("body-parser");
 const cookieParser = require("cookie-parser");
-const session = require("express-session");
 
+const session = require("express-session");
 const subdomain = require("express-subdomain");
 const express = require("express");
 const app = express();
@@ -34,7 +35,7 @@ morgan.token('email', function (req, res) {
 app.use(morgan(':email | :remote-addr <-> :remote-user [:date[clf]] ":method :url HTTP/:http-version" :status :res[content-length] in :response-time ms'))
 app.use(express.json())
 app.use(cors({
-    origin: ["https://review-rocket.fr"],
+    origin: ["http://localhost:3000"],
     methods: ["GET", "POST"],
     credentials: true,
 }))
@@ -49,7 +50,7 @@ app.use(session({
     resave: false,
     saveUninitialized: false,
     cookie: {
-        expires: 1000 * 60 * 60 * 24,
+        expires: 1000 * 60 * 30,
     },
 }))
 
@@ -63,8 +64,8 @@ const transporter = nodemailer.createTransport({
     }
 });
 
-const registerEmailTemplate = handlebars.compile('<nav style="background-color: rgba(33,37,41); position: relative; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; padding: 0.5rem 0;"><div style="display: flex; flex-wrap: inherit; align-items: center; justify-content: space-between; max-width: 100%; padding-top: 1rem !important; padding-bottom: 1rem !important;"><div style="text-align: center !important; display: flex; flex-wrap: inherit; align-items: center; justify-content: space-between; max-width: 900px; padding-top: 1rem !important; padding-bottom: 1rem !important;"><a href="https://review-rocket.fr/login" style="margin: 0 !important; color: #000; text-decoration: none;"><h1>🚀 ReviewRocket</h1></a></div></div></nav><div style="text-align: center !important;"><h2>Welcome to ReviewRocket!</h2><p>Thank you for creating a ReviewRocket account! <br />To be able to create reviews, you first need to verify your account by clicking on the link below:</p><a href="https://review-rocket.fr/verify?email={{uEmail}}&key={{vKey}}">Click here to verify your account</a></div>')
-const changePassTemplate = '<nav style="background-color: rgba(33,37,41); position: relative; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;padding: 0.5rem 0;"><div style="display: flex;flex-wrap: inherit;align-items: center;justify-content: space-between;max-width: 900px;padding-top: 1rem !important;padding-bottom: 1rem !important;"><div style="text-align: center !important;display: flex;flex-wrap: inherit;align-items: center;justify-content: space-between;max-width: 900px;padding-top: 1rem !important;padding-bottom: 1rem !important;"><a href="https://review-rocket.fr/login" style="margin: 0 !important;color: #000;text-decoration: none;"><h1>🚀 ReviewRocket</h1></a></div></div></nav><div style="text-align: center !important;"><h2>Your ReviewRocket account</h2><p>Your password has been changed! <br />If you are the source of this change, you may ignore this email. Otherwise, please contact the ReviewRocket support ASAP:</p><a href="mailto:support@review-rocket.fr">ReviewRocket Support</a></div>'
+const registerEmailTemplate = handlebars.compile('<div style="text-align: center !important;"><h2>🚀 Welcome to ReviewRocket!</h2><p>Thank you for creating a ReviewRocket account! <br />To be able to create reviews, you first need to verify your account by clicking on the link below:</p><a href="http://localhost/verify?email={{uEmail}}&key={{vKey}}">Click here to verify your account</a></div>')
+const changePassTemplate = '<div style="text-align: center !important;"><h2>🚀 Your ReviewRocket account</h2><p>Your password has been changed! <br />If you are the source of this change, you may ignore this email. Otherwise, please contact the ReviewRocket support ASAP:</p><a href="mailto:support@review-rocket.fr">ReviewRocket Support</a></div>'
 
 async function sendRegisterEmail(userEmail, verificationKey) {
     const htmlToSend = registerEmailTemplate({ uEmail: userEmail, vKey: verificationKey.toString() })
@@ -75,7 +76,7 @@ async function sendRegisterEmail(userEmail, verificationKey) {
         subject: "Please confirm your email address",
         text: "this is a test",
         html: htmlToSend,
-    });
+    })
 }
 
 async function sendChangePassEmail(userEmail) {
@@ -92,7 +93,7 @@ async function sendChangePassEmail(userEmail) {
 
 const CLIENT_ID = process.env.PAYPAL_CLIENT_ID
 const APP_SECRET = process.env.PAYPAL_APP_SECRET
-const paypal_base = "https://api-m.sandbox.paypal.com";
+const paypal_base = process.env.PAYPAL_BASE;
 
 const generateAccessToken = async () => {
     try {
@@ -120,7 +121,7 @@ const capturePayment = async (orderID) => {
         method: "post",
         headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${accessToken}∫`,
+            'Authorization': `Bearer ${accessToken}`,
         }
     });
 
@@ -139,6 +140,69 @@ const subscriptionState = async (orderID) => {
     })
 
     return handleResponse(response);
+};
+
+const cancelSubscription = async (orderID) => {
+    const accessToken = await generateAccessToken();
+    const url = `${paypal_base}/v1/billing/subscriptions/${orderID}/cancel`;
+
+    const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ "reason": "User unsubscribed" })
+    })
+
+    return handleResponse(response);
+};
+
+const subscriptionTransactionsAmount = async (orderID, startTime) => {
+    const accessToken = await generateAccessToken();
+    const endTime = new Date()
+    const url = `${paypal_base}/v1/billing/subscriptions/${orderID}/transactions?start_time=${startTime.toISOString()}&end_time=${endTime.toISOString()}`;
+
+    const response = await fetch(url, {
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`,
+        }
+    })
+
+    let totalAmount = 0
+    try {
+        const transactions = await handleResponse(response)
+        transactions['transactions'].forEach((transaction) => {
+            if (transaction['status'] == "COMPLETED") {
+                totalAmount += transaction['amount_with_breakdown']['net_amount']['value'] * 0.10
+            }
+        })
+    } catch (error) { }
+
+    return totalAmount;
+};
+
+const orderTransactionAmount = async (orderID) => {
+    const accessToken = await generateAccessToken();
+    const url = `${paypal_base}/v2/payments/captures/${orderID}`;
+
+    const response = await fetch(url, {
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`,
+        }
+    })
+
+    let totalAmount = 0
+    try {
+        const transaction = await handleResponse(response)
+        if (transaction['status'] == "COMPLETED") {
+            totalAmount += transaction['seller_receivable_breakdown']['net_amount']['value'] * 0.10
+        }
+    } catch (error) { }
+
+    return totalAmount;
 };
 
 async function handleResponse(response) {
@@ -161,16 +225,12 @@ const pool = mysql.createPool({
 })
 
 pool.getConnection(function (err, connection) {
-    if (err) throw err; // not connected!
+    if (err) {
+        throw err; // not connected!
+    } else {
+        console.log("connected to", process.env.SQL_HOST, process.env.SQL_DATABASE)
+    }
 })
-
-app.post("/api/", (req, res) => {
-    res.send({ healthy: true })
-});
-
-app.post("/", (req, res) => {
-    res.send({ healthy: true })
-});
 
 app.post("/api/captcha", async (req, res) => {
     const token = req.body.token;
@@ -182,16 +242,48 @@ app.post("/api/captcha", async (req, res) => {
     })
 });
 
+app.get("/api/resend-verification", async (req, res) => {
+    if (!req.session.user) {
+        res.send({ success: false })
+        return
+    }
+
+    const userEmail = JSON.parse(jfe.decrypt(
+        Buffer.from(process.env.UID_ENCRYPT, 'base64'),
+        req.session.user)
+    ).email
+
+    pool.query(
+        "SELECT verification FROM users WHERE email=?;",
+        [userEmail],
+        async (error, result) => {
+            if (error) {
+                res.send({ success: false, message: "Could not get verification", err: error })
+                return
+            }
+
+            await sendRegisterEmail(userEmail, result[0]['verification']).catch((e) => {
+                res.send({ success: false, message: "Could not send verification", err: e })
+                return
+            }).then(() => {
+                res.send({ success: true })
+                return
+            });
+        }
+    );
+});
+
 app.post("/api/register", (req, res) => {
     const userEmail = req.body.userEmail
     const userPass = req.body.userPass
     const captcha = req.body.captcha
+    const referrer = req.session.referrer
 
     const verificationKey = Buffer.from(uid.sync(128)).toString("base64")
     const referralId = jfe.encrypt(
         Buffer.from(process.env.UID_ENCRYPT, 'base64'),
         userEmail
-    ).split(":")[0]
+    ).split(":")[0].slice(0, 10)
 
     if (!captcha) {
         res.send({ message: "Invalid reCAPTCHA" })
@@ -200,17 +292,15 @@ app.post("/api/register", (req, res) => {
 
     bcrypt.hash(userPass, saltRounds, (err, hash) => {
         if (err) {
-            console.log(err)
             res.send({ message: "Error trying to create your account", err: err })
             return
         }
 
         pool.query(
-            "INSERT INTO users (email, password, verification, referral_id) VALUES (?, ?, ?, ?);",
-            [userEmail, hash, verificationKey, referralId],
+            "INSERT INTO users (email, password, verification, referral_id, referrer) VALUES (?, ?, ?, ?, ?);",
+            [userEmail, hash, verificationKey, referralId, referrer],
             (error, result) => {
                 if (error) {
-                    console.log(error, result)
                     res.send({ registered: false, message: "Error trying to create your account", err: error })
                     return
                 }
@@ -221,7 +311,188 @@ app.post("/api/register", (req, res) => {
             }
         );
     })
-})
+});
+
+app.get("/api/referral-state", async (req, res) => {
+    if (!req.session.user) {
+        res.send({ success: false })
+        return
+    }
+
+    const userEmail = JSON.parse(jfe.decrypt(
+        Buffer.from(process.env.UID_ENCRYPT, 'base64'),
+        req.session.user)
+    ).email
+
+    pool.query(
+        "SELECT referral_id, is_affiliate, last_payout FROM users WHERE email=?;",
+        [userEmail],
+        async (error, result) => {
+            if (error) {
+                res.send({ success: false, err: error })
+                return
+            }
+
+            let referralState = {
+                isAffiliate: result[0].is_affiliate
+            }
+
+            if (!referralState.isAffiliate) {
+                res.send({
+                    success: true, referralState: referralState
+                })
+                return
+            }
+
+            let referral_id = result[0].referral_id
+            let last_payout = result[0].last_payout
+
+            pool.query(
+                "SELECT COUNT(_id) FROM users WHERE referrer=?;",
+                [referral_id],
+                async (error, resultCount) => {
+                    if (error) {
+                        res.send({ success: false, err: error })
+                        return
+                    }
+
+                    referralState = {
+                        ...referralState,
+                        referralId: referral_id,
+                        userCount: resultCount[0]['COUNT(_id)']
+                    }
+
+                    pool.query(
+                        "(SELECT ppl_id, t_type, purchased_at FROM transactions WHERE t_type='subscription' AND email IN (SELECT email FROM users WHERE referrer=?)) UNION (SELECT ppl_id, t_type, purchased_at FROM transactions WHERE t_type='order' AND email IN (SELECT email FROM users WHERE referrer=?) AND purchased_at>?);",
+                        [referral_id, referral_id, last_payout],
+                        async (error, resultOrders) => {
+                            if (error) {
+                                res.send({ success: false, err: error })
+                                return
+                            }
+
+                            let payoutAmount = 0
+                            let resultPromises = resultOrders.map(async (result) => {
+                                if (result['t_type'] == "subscription") {
+                                    return await subscriptionTransactionsAmount(result['ppl_id'], last_payout)
+                                } else if (result['t_type'] == "order") {
+                                    return await orderTransactionAmount(result['ppl_id'])
+                                }
+                            })
+
+                            Promise.allSettled(resultPromises).then((results) => {
+                                results.forEach((result) => {
+                                    if (result.status == 'fulfilled') {
+                                        payoutAmount += result.value
+                                    }
+                                })
+
+                                referralState = {
+                                    ...referralState,
+                                    payoutAmount: (Math.floor(payoutAmount * 100) / 100).toFixed(2)
+                                }
+
+                                res.send({ success: true, referralState: referralState })
+                                return
+                            })
+
+
+                        }
+                    );
+                }
+            );
+        }
+    );
+});
+
+app.post("/api/request-payout", async (req, res) => {
+    if (!req.session.user) {
+        res.send({ success: false })
+        return
+    }
+
+    const userEmail = JSON.parse(jfe.decrypt(
+        Buffer.from(process.env.UID_ENCRYPT, 'base64'),
+        req.session.user)
+    ).email
+    const payoutAmount = req.body.amount
+    const accessToken = await generateAccessToken();
+    const url = `${paypal_base}/v1/payments/payouts`;
+
+    pool.query(
+        "SELECT referral_id FROM users WHERE email=?;",
+        [userEmail],
+        async (error, result) => {
+            if (error) {
+                res.send({ success: false, message: "Could not get ID", err: error })
+                return
+            }
+
+            const senderId = result[0]['referral_id'] + "_" + Date.now()
+
+            // console.log(JSON.stringify({
+            //     "sender_batch_header": {
+            //         "sender_batch_id": `Payout_${senderId}`,
+            //         "email_subject": "You have a payout!",
+            //         "email_message": "You have received a payout! Thanks for using ReviewRocket!"
+            //     },
+            //     "items": [{
+            //         "recipient_type": "EMAIL",
+            //         "amount": { "value": `${payoutAmount}`, "currency": "USD" },
+            //         "note": "Thanks for your support!",
+            //         "sender_item_id": `Item_${senderId}`,
+            //         "receiver": `${userEmail}`,
+            //         "recipient_wallet": "PAYPAL"
+            //     }]
+            // }))
+            // res.send({ success: true })
+            // return
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${accessToken}`,
+                },
+                body: JSON.stringify({
+                    "sender_batch_header": {
+                        "sender_batch_id": `Payout_${senderId}`,
+                        "email_subject": "You have a payout!",
+                        "email_message": "You have received a payout! Thanks for using ReviewRocket!"
+                    },
+                    "items": [{
+                        "recipient_type": "EMAIL",
+                        "amount": { "value": `${payoutAmount}`, "currency": "USD" },
+                        "note": "Thanks for your support!",
+                        "sender_item_id": `${senderId}`,
+                        "receiver": `${userEmail}`,
+                        "recipient_wallet": "PAYPAL"
+                    }]
+                })
+            })
+
+            try {
+                const transaction = await handleResponse(response);
+
+                pool.query("INSERT INTO transactions (email, ppl_id, t_type) VALUES (?, ?, ?); UPDATE users SET last_payout=CURRENT_TIMESTAMP() WHERE email=?;",
+                    [userEmail, transaction['batch_header']['payout_batch_id'], "payout", userEmail],
+                    (qerr, qres) => {
+                        if (qerr) {
+                            res.send({ success: false, message: "Could not insert transaction", err: qerr })
+                            return
+                        }
+
+                        res.send({ success: true })
+                        return
+                    }
+                )
+            } catch (error) {
+                res.send({ success: false })
+                return
+            }
+        }
+    );
+});
 
 app.post("/api/change-password", (req, res) => {
     if (!req.session.user) {
@@ -288,6 +559,7 @@ app.post("/api/delete-account", (req, res) => {
                 res.send({ success: false, message: "Wrong email/password combination" })
                 return
             }
+
             bcrypt.compare(userPass, result[0].password, (error, response) => {
                 if (!response) {
                     res.send({ success: false })
@@ -315,6 +587,65 @@ app.post("/api/delete-account", (req, res) => {
             })
         }
     )
+})
+
+app.get("/api/unsubscribe", async (req, res) => {
+    if (!req.session.user) {
+        res.send({ success: false })
+        return
+    }
+
+    const userEmail = JSON.parse(jfe.decrypt(
+        Buffer.from(process.env.UID_ENCRYPT, 'base64'),
+        req.session.user)
+    ).email
+
+    pool.query(
+        "SELECT subscription FROM users WHERE email=?;",
+        [userEmail],
+        async (error, result) => {
+            if (error) {
+                res.send({ success: false, err: error })
+                return
+            }
+
+            if (result[0]['subscription'] == "ADMIN") {
+                pool.query(
+                    "UPDATE users SET subscription=NULL WHERE email=?;",
+                    [userEmail],
+                    (error, result) => {
+                        if (error) {
+                            res.send({ success: false, err: error })
+                            return
+                        }
+
+                        res.send({ success: true })
+                        return
+                    }
+                );
+            } else {
+                try {
+                    let response = await cancelSubscription(result[0]['subscription'])
+                    pool.query(
+                        "UPDATE users SET subscription=NULL WHERE email=?;",
+                        [userEmail],
+                        (error, result) => {
+                            if (error) {
+                                res.send({ success: false, err: error })
+                                return
+                            }
+
+                            res.send({ success: true })
+                            return
+                        }
+                    );
+                } catch (error) {
+                    res.send({ success: false, message: "Could not unsubscribe", err: e })
+                    return
+                }
+            }
+        }
+    );
 })
 
 app.post("/api/login", (req, res) => {
@@ -372,7 +703,7 @@ app.post("/api/login", (req, res) => {
                     loggedIn: true,
                     user: req.session.user,
                     verified: req.session.verified,
-                    tokens: req.session.tokens
+                    tokens: req.session.tokens,
                 })
                 return
             })
@@ -383,7 +714,14 @@ app.post("/api/login", (req, res) => {
     return
 })
 
-app.get("/api/login", (req, res) => {
+app.post("/api/set-referrer", (req, res) => {
+    req.session.referrer = req.body.referrer
+    res.send({
+        referred: true
+    })
+})
+
+app.get("/api/login", async (req, res) => {
     if (!req.session.user) {
         res.send({ loggedIn: false })
         return
@@ -421,41 +759,46 @@ app.get("/api/login", (req, res) => {
 
             if (!result[0].subscription) {
                 if (result[0].tokens < 0) {
-                    pool.query("UPDATE users SET tokens=0 WHERE email=?",
-                        [userEmail])
+                    pool.query("UPDATE users SET tokens=0 WHERE email=?", [userEmail])
                     req.session.tokens = 0
                 } else {
                     req.session.tokens = result[0].tokens
                 }
             } else if (result[0].subscription == "ADMIN") {
-                pool.query("UPDATE users SET tokens=-1 WHERE email=?",
-                    [userEmail])
+                pool.query("UPDATE users SET tokens=-1 WHERE email=?", [userEmail])
                 req.session.tokens = -1
             } else {
-                response = await subscriptionState(result[0].subscription)
-
-                if (response.status == "ACTIVE" && result[0].tokens != -1) {
-                    pool.query("UPDATE users SET tokens=-1 WHERE email=?",
-                        [userEmail])
-                    req.session.tokens = -1
-                } else if (response.status == "APPROVAL_PENDING" || response.status == "APPROVED") {
-                    req.session.tokens = result[0].tokens
-                } else {
-                    pool.query("UPDATE users SET tokens=500, subscription=NULL WHERE email=?",
-                        [userEmail])
-                    req.session.tokens = 500
+                try {
+                    let response = await subscriptionState(result[0].subscription)
+                    if (response.status == "ACTIVE") {
+                        if (result[0].tokens != -1) {
+                            pool.query("UPDATE users SET tokens=-1 WHERE email=?", [userEmail])
+                        }
+                        req.session.tokens = -1
+                    } else {
+                        if (result[0].tokens < 0) {
+                            pool.query("UPDATE users SET tokens=0 WHERE email=?", [userEmail])
+                            req.session.tokens = 0
+                        } else {
+                            req.session.tokens = result[0].tokens
+                        }
+                    }
+                } catch (error) {
+                    console.error("Failed to create order:", error);
+                    res.send({ loggedIn: false });
+                    return
                 }
             }
 
-            req.session.verified = result[0].verified
             req.session.user = jfe.encrypt(
                 Buffer.from(process.env.UID_ENCRYPT, 'base64'),
                 JSON.stringify(result[0])
             )
+            req.session.verified = result[0].verified
 
             res.send({
                 loggedIn: true,
-                user: req.session.user,
+                user: userEmail,
                 verified: req.session.verified,
                 tokens: req.session.tokens
             })
@@ -620,6 +963,7 @@ app.post("/api/orders/:orderID/execute", (req, res) => {
     try {
         const { orderID } = req.params;
         const orderTokens = req.body.tokens
+        const orderTransaction = req.body.transaction
         const userEmail = JSON.parse(jfe.decrypt(
             Buffer.from(process.env.UID_ENCRYPT, 'base64'),
             req.session.user)
@@ -650,15 +994,28 @@ app.post("/api/orders/:orderID/execute", (req, res) => {
                         return
                     }
 
-                    pool.query("INSERT INTO orders (email, ppl_id) VALUES (?, ?)",
-                        [userEmail, orderID])
-                    req.session.tokens = -1
-                    res.send({
-                        executed: true,
-                        order: orderID,
-                        user: req.session.user,
-                        tokens: req.session.tokens
-                    })
+                    pool.query("INSERT INTO transactions (email, ppl_id, t_type) VALUES (?, ?, ?)",
+                        [userEmail, orderID, "subscription"],
+                        (qerr, qres) => {
+                            if (qerr) {
+                                console.error("Failed to execute pay order:", err);
+                                res.send({
+                                    err: err,
+                                    executed: false,
+                                    order: orderTransaction,
+                                })
+                                return
+                            }
+
+                            req.session.tokens = -1
+                            res.send({
+                                executed: true,
+                                order: orderID,
+                                user: req.session.user,
+                                tokens: req.session.tokens
+                            })
+                        }
+                    )
                 }
             )
         } else {
@@ -672,7 +1029,7 @@ app.post("/api/orders/:orderID/execute", (req, res) => {
                         res.send({
                             err: err,
                             executed: false,
-                            order: orderID,
+                            order: orderTransaction,
                         })
                         return
                     }
@@ -681,21 +1038,34 @@ app.post("/api/orders/:orderID/execute", (req, res) => {
                         console.error("Failed to execute pay order: Undefined");
                         res.send({
                             executed: false,
-                            order: orderID,
+                            order: orderTransaction,
                             message: "Undefined result, contact support to resolve the issue"
                         })
                         return
                     }
 
-                    pool.query("INSERT INTO orders (email, ppl_id) VALUES (?, ?)",
-                        [userEmail, orderID])
-                    req.session.tokens = newUserTokens
-                    res.send({
-                        executed: true,
-                        order: orderID,
-                        user: req.session.user,
-                        tokens: req.session.tokens
-                    })
+                    pool.query("INSERT INTO transactions (email, ppl_id, t_type) VALUES (?, ?, ?)",
+                        [userEmail, orderTransaction, "order"],
+                        (qerr, qres) => {
+                            if (qerr) {
+                                console.error("Failed to execute pay order:", err);
+                                res.send({
+                                    err: err,
+                                    executed: false,
+                                    order: orderTransaction,
+                                })
+                                return
+                            }
+
+                            req.session.tokens = newUserTokens
+                            res.send({
+                                executed: true,
+                                order: orderTransaction,
+                                user: req.session.user,
+                                tokens: req.session.tokens
+                            })
+                        }
+                    )
                 }
             )
         }
@@ -709,24 +1079,68 @@ app.post("/api/orders/:orderID/execute", (req, res) => {
     }
 })
 
-app.get("/api/get-oaikey", (req, res) => {
+app.post("/api/get-reviews", async (req, res) => {
     if (!req.session.user) {
         res.send({ loggedIn: false })
         return
     }
 
+    const userEmail = JSON.parse(jfe.decrypt(
+        Buffer.from(process.env.UID_ENCRYPT, 'base64'),
+        req.session.user)
+    ).email
+
     let items = process.env.OPENAI_KEY.split(",")
     let oai_key = items[Math.floor(Math.random() * items.length)];
+    const configuration = new Configuration({
+        apiKey: oai_key,
+    });
+    const openai = new OpenAIApi(configuration);
 
-    if (JSON.parse(jfe.decrypt(Buffer.from(process.env.UID_ENCRYPT, 'base64'), req.session.user)).email) {
-        res.send({
-            loggedIn: true,
-            user: req.session.user,
-            openai_key: oai_key
-        })
-        return
-    }
+    let productHandle = req.body.productHandle
+    let productTitle = req.body.productTitle
+    let quantity = req.body.quantity
+    let language = req.body.language
+    let keywords = req.body.keywords
+    let gender = req.body.gender
+    let age = req.body.age
+    let dateStart = new Date(req.body.periodStart)
+    let dateEnd = new Date(req.body.periodEnd)
+    let countryCode = req.body.countryCode
 
+    let userPrompt = 'Generate a JSON-formatted answer containing short, belivable reviews using the given information.\
+        The information will follow the JSON format, and will be composed of the amount of reviews to generate, the language the reviews are written in, the keywords describing the product reviewed, the age and gender of the people writing the reviews, and the start and end of the period in which the reviews are written. This is an example of such information:\
+        {"quantity":"3","language":"english","keywords":["handbag","leather","black","high-quality","luxurious"],"gender":"male","age":"senior"}\
+        The output should be JSON-formatted and contain the following fields : author (First and last names of the person writing the review), body_text (The review itself). The keywords should be rarely used. The reviews should be short and reflect one quality that the product may have. The reviews must not contain commas. This is an example of such an answer:\
+        {"reviews":[{"author":"John Smith","body_text":"I recently purchased this handbag and I must say it exceeded my expectations. The leather is top-notch and the black color gives it a sleek look."},{"author":"Robert Johnson","body_text":"Very good. Highly recommended!"},{"author":"Michael Williams","body_text":"I\'m impressed by the handbag\'s quality."}]}\
+        Here is the information to use: '+ JSON.stringify({ quantity, language, keywords, gender, age })
+
+    let ai_response = await openai.createChatCompletion({
+        model: "gpt-3.5-turbo",
+        messages: [{ role: "user", content: userPrompt }],
+    });
+    let json_response = JSON.parse(ai_response.data.choices[0].message.content.replace(/,(?=\s*?[}\]])/g, '')).reviews
+
+    let results = []
+    json_response.map((review) => {
+        review["product_handle"] = productHandle;
+        review["title"] = productTitle;
+        review["rating"] = Math.round(Math.random() + 4)
+        review["email"] = review["author"].toLowerCase().split(" ").join(".") + "@mail.com"
+        review["body_text"] = review["body_text"].replace(',', '.')
+        review["body_urls"] = ""
+        let newDateString = new Date(dateStart.getTime() + Math.random() * (dateEnd.getTime() - dateStart.getTime())).toLocaleString('en-GB')
+        review["created_at"] = newDateString.substring(0, newDateString.length - 3).replace(',', '')
+        review["avatar"] = ""
+        review["country_code"] = countryCode
+        review["status"] = "enable"
+        review["featured"] = "0"
+        results.push(review)
+    })
+
+    res.send({
+        results: results
+    })
 })
 
 app.post("/api/validate-promo-code", (req, res) => {
@@ -860,5 +1274,5 @@ app.post("/api/validate-promo-code", (req, res) => {
 })
 
 app.listen(4000, () => {
-    console.log("listening on https://review-rocket.fr:4000/");
+    console.log("listening on http://localhost:4000/");
 });

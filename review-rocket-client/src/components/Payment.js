@@ -62,7 +62,7 @@ const ButtonWrapper = ({ showSpinner, refillBundle }) => {
                     onApprove={async (data, actions) => {
                         alert("Your subscription has been successfully approved"); // You can add optional success message for the subscriber here
 
-                        Axios.post(`https://review-rocket.fr/api/orders/${data.subscriptionID}/execute`, {
+                        Axios.post(`http://localhost:4000/api/orders/${data.subscriptionID}/execute`, {
                             tokens: refillBundle["tokens"],
                         }).then((res) => {
                             // console.log(res)
@@ -87,26 +87,24 @@ const ButtonWrapper = ({ showSpinner, refillBundle }) => {
                     }}
 
                     createOrder={async (data, actions) => {
-                        return actions.order
-                            .create({
-                                purchase_units: [
-                                    {
-                                        amount: {
-                                            currency_code: "USD",
-                                            value: refillBundle["price"],
-                                        },
+                        return actions.order.create({
+                            purchase_units: [
+                                {
+                                    amount: {
+                                        currency_code: "USD",
+                                        value: refillBundle["price"],
                                     },
-                                ],
-                            })
-                            .then((orderId) => {
-                                // Your code here after create the order
-                                return orderId;
-                            });
+                                },
+                            ],
+                        }).then((orderId) => {
+                            // Your code here after create the order
+                            return orderId;
+                        });
                     }}
 
                     onApprove={async (data, actions) => {
                         try {
-                            const response = await fetch(`/api/orders/${data.orderID}/capture`, {
+                            const response = await fetch(`http://localhost:4000/api/orders/${data.orderID}/capture`, {
                                 method: "POST"
                             });
 
@@ -134,12 +132,13 @@ const ButtonWrapper = ({ showSpinner, refillBundle }) => {
                             }
 
                             // Successful capture! For demo purposes:
-                            // console.log('Capture result', details, JSON.stringify(details, null, 2));
-                            // const transaction = details.purchase_units[0].payments.captures[0];
+                            console.log('Capture result', details, JSON.stringify(details, null, 2));
+                            const transaction = details.purchase_units[0].payments.captures[0]['id'];
                             // alert('Transaction ' + transaction.status + ': ' + transaction.id + 'See console for all available details');
 
-                            Axios.post(`https://review-rocket.fr/api/orders/${data.orderID}/execute`, {
+                            Axios.post(`http://localhost:4000/api/orders/${data.orderID}/execute`, {
                                 tokens: refillBundle["tokens"],
+                                transaction: transaction
                             }).then((res) => {
                                 // console.log(res)
                             })

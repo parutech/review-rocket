@@ -47,6 +47,7 @@ export const ContextData = React.createContext();
 
 export default function App() {
     const [sessionParameters, setSessionParameters] = useState({
+        user: undefined,
         isLogged: undefined,
         isVerified: undefined,
         tokens: undefined,
@@ -54,6 +55,16 @@ export default function App() {
     const sessionValues = { sessionParameters, setSessionParameters }
 
     Axios.defaults.withCredentials = true;
+
+    // useEffect(() => {
+    //     Axios.get('http://localhost:4000/api/login').then((res) => {
+    //         setSessionParameters({
+    //             isLogged: res.data.loggedIn,
+    //             isVerified: res.data.verified,
+    //             tokens: res.data.tokens,
+    //         })
+    //     })
+    // }, [])
 
     return (
         <ContextData.Provider value={sessionValues}>

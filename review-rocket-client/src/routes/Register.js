@@ -7,7 +7,7 @@ import Axios from 'axios';
 import Reaptcha from 'reaptcha';
 
 function Register() {
-    const { sessionParameters, setSessionParameters } = React.useContext(ContextData);
+    const sessionParameters = React.useContext(ContextData).sessionParameters;
     const [emailRegister, setEmailRegister] = useState('')
     const [passRegister, setPassRegister] = useState('')
     const [passConfirmRegister, setPassConfirmRegister] = useState('')
@@ -20,7 +20,7 @@ function Register() {
 
     const captchaValidation = () => {
         captchaRef.current.getResponse().then(res => {
-            Axios.post('https://review-rocket.fr/api/captcha', {
+            Axios.post('http://localhost:4000/api/captcha', {
                 token: res
             }).then((response) => {
                 setCaptchaSuccess(response.data.verification)
@@ -37,10 +37,10 @@ function Register() {
         inputs.forEach(element => element.setAttribute("disabled", ''))
 
         if (passRegister === passConfirmRegister) {
-            Axios.post('https://review-rocket.fr/api/register', {
+            Axios.post('http://localhost:4000/api/register', {
                 userEmail: emailRegister,
                 userPass: passRegister,
-                captcha: captchaSuccess
+                captcha: captchaSuccess,
             }).then((res) => {
                 if (res.data.registered) {
                     navigate("/login")
@@ -75,12 +75,12 @@ function Register() {
                                 <label htmlFor="password" className="form-label register-password">Password:</label>
                                 <input type="password" name="password" id="password" className="form-control register-password mb-2" required min-length="8" onChange={(e) => { setPassRegister(e.target.value) }} />
                                 <label htmlFor="confirm-password" className="form-label register-password">Confirm password:</label>
-                                <input type="password" name="confirm-password" id="confirm-password" className="form-control register-password mb-2" required min-length="8" onChange={(e) => { setPassConfirmRegister(e.target.value) }} />
+                                <input type="password" name="confirm-password" id="confirm-password" className="form-control register-password mb-2" required min-length="8" max-length="50" onChange={(e) => { setPassConfirmRegister(e.target.value) }} />
                                 <div id="password-help" className="form-text mb-3">
-                                    Your password must be 8-250 characters long, contain letters and numbers, and must not contain spaces, special characters, or emoji.
+                                    Your password must be 8-50 characters long, contain letters and numbers, and must not contain spaces, special characters, or emoji.
                                 </div>
                                 <div className="d-flex justify-content-center">
-                                    <Reaptcha className="register-captcha mb-2" sitekey="6LdVsMMmAAAAAMPZXnQiGv-_Tb5FQ6HvjAR3LHyV" ref={captchaRef} onVerify={captchaValidation} />
+                                    <Reaptcha className="register-captcha mb-2" sitekey="6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI" ref={captchaRef} onVerify={captchaValidation} />
                                 </div>
                                 <input type="submit" value="Register" className="register-submit btn btn-primary" disabled />
                             </form>
@@ -97,17 +97,25 @@ function Register() {
 
     if (!sessionParameters.isVerified) {
         return (
-            <div className="login-page text-center p-5">
-                Checking your credentials...
-                <Navigate replace to={"/account"} />
+            <div className='body'>
+                <Header />
+                <div className="login-page text-center p-5">
+                    Checking your credentials...
+                    <Navigate replace to="/account" />
+                </div>
+                <Footer />
             </div>
         )
     }
 
     return (
-        <div className="login-page text-center p-5">
-            Checking your credentials...
-            <Navigate replace to={"/generate"} />
+        <div className='body'>
+            <Header />
+            <div className="login-page text-center p-5">
+                Checking your credentials...
+                <Navigate replace to="/generate" />
+            </div>
+            <Footer />
         </div>
     )
 }

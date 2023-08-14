@@ -1,7 +1,7 @@
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { ContextData } from "../components/App";
-import { NavLink, Navigate, useNavigate } from 'react-router-dom';
+import { NavLink, Navigate } from 'react-router-dom';
 import React, { useState, useRef } from 'react';
 import Axios from 'axios';
 import Reaptcha from 'reaptcha';
@@ -12,14 +12,13 @@ function Login() {
     const [passLogin, setPassLogin] = useState('')
     const [loginMessage, setLoginMessage] = useState("")
     const [captchaSuccess, setCaptchaSuccess] = useState(undefined)
-    const navigate = useNavigate();
     const captchaRef = useRef(null)
 
     Axios.defaults.withCredentials = true;
 
     const captchaValidation = () => {
         captchaRef.current.getResponse().then(res => {
-            Axios.post('https://review-rocket.fr/api/captcha', {
+            Axios.post('http://localhost:4000/api/captcha', {
                 token: res
             }).then((response) => {
                 setCaptchaSuccess(response.data.verification)
@@ -34,18 +33,19 @@ function Login() {
         let inputs = document.querySelectorAll("input")
         inputs.forEach(element => element.setAttribute("disabled", ''))
 
-        Axios.post('https://review-rocket.fr/api/login', {
+        Axios.post('http://localhost:4000/api/login', {
             userEmail: emailLogin,
             userPass: passLogin,
             captcha: captchaSuccess
         }).then((res) => {
             if (res.data.loggedIn) {
-                setSessionParameters({
+                let newSessionParameters = {
+                    ...sessionParameters,
                     isLogged: res.data.loggedIn,
                     isVerified: res.data.verified,
                     tokens: res.data.tokens,
-                })
-                navigate("/generate")
+                }
+                setSessionParameters(newSessionParameters)
             }
             setLoginMessage(res.data.message)
             inputs.forEach(element => element.removeAttribute("disabled"))
@@ -71,9 +71,9 @@ function Login() {
                                 <label htmlFor="email" className="form-label register-email">Email:</label>
                                 <input type="email" name="email" id="email" className="form-control register-email mb-2" required onChange={(e) => { setEmailLogin(e.target.value) }} />
                                 <label htmlFor="password" className="form-label login-password">Password:</label>
-                                <input type="password" name="password" id="password" className="form-control login-password mb-2" required min-length="8" onChange={(e) => { setPassLogin(e.target.value) }} />
+                                <input type="password" name="password" id="password" className="form-control login-password mb-2" required min-length="8" max-length="50" onChange={(e) => { setPassLogin(e.target.value) }} />
                                 <div className="d-flex justify-content-center">
-                                    <Reaptcha className="login-captcha mb-2" sitekey="6LdVsMMmAAAAAMPZXnQiGv-_Tb5FQ6HvjAR3LHyV" ref={captchaRef} onVerify={captchaValidation} />
+                                    <Reaptcha className="login-captcha mb-2" sitekey="6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI" ref={captchaRef} onVerify={captchaValidation} />
                                 </div>
                                 <input type="submit" value="Login" className="login-submit btn btn-primary" disabled />
                             </form>
@@ -90,17 +90,25 @@ function Login() {
 
     if (!sessionParameters.isVerified) {
         return (
-            <div className="login-page text-center p-5">
-                Checking your credentials...
-                <Navigate replace to={"/account"} />
+            <div className='body'>
+                <Header />
+                <div className="login-page text-center p-5">
+                    Checking your credentials...
+                    <Navigate replace to="/account" />
+                </div>
+                <Footer />
             </div>
         )
     }
 
     return (
-        <div className="login-page text-center p-5">
-            Checking your credentials...
-            <Navigate replace to={"/generate"} />
+        <div className='body'>
+            <Header />
+            <div className="login-page text-center p-5">
+                Checking your credentials...
+                <Navigate replace to="/generate" />
+            </div>
+            <Footer />
         </div>
     )
 } export default Login;

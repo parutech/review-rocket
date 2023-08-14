@@ -10,10 +10,12 @@ function Footer() {
                     </a>
                 </div>
             </div>
-            <div className="text-white-50 text-center">Powered by AI <br />Copyright ReviewRocket 2023</div>
             <div className="text-center">
-                <a className="text-white-50" href="mailto:support@review-rocket.fr">Contact support</a>
+                <a className="text-white-50 me-2" href="mailto:support@review-rocket.fr">Contact support</a>
+
+                <a className="text-white-50 ms-2" href="mailto:contact@review-rocket.fr">Request affiliation</a>
             </div>
+            <div className="text-white-50 text-center">Powered by AI <br />Copyright © 2023 ReviewRocket</div>
         </div>
     )
 }
