@@ -80,7 +80,7 @@ function Register() {
                                     Your password must be 8-50 characters long, contain letters and numbers, and must not contain spaces, special characters, or emoji.
                                 </div>
                                 <div className="d-flex justify-content-center">
-                                    <Reaptcha className="register-captcha mb-2" sitekey="6LdVsMMmAAAAAMPZXnQiGv-_Tb5FQ6HvjAR3LHyV" ref={captchaRef} onVerify={captchaValidation} />
+                                    <Reaptcha className="register-captcha mb-2" sitekey="6LeCu6cnAAAAAO7MR9NDhIBZYLgph0s7Ws3aj0XC" ref={captchaRef} onVerify={captchaValidation} />
                                 </div>
                                 <input type="submit" value="Register" className="register-submit btn btn-primary" disabled />
                             </form>
