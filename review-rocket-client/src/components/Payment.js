@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import Axios from 'axios';
-import { PayPalScriptProvider, PayPalButtons, usePayPalScriptReducer, FUNDING } from "@paypal/react-paypal-js";
+import { PayPalScriptProvider, PayPalButtons, usePayPalScriptReducer } from "@paypal/react-paypal-js";
 
 const ButtonWrapper = ({ showSpinner, refillBundle }) => {
     // usePayPalScriptReducer can be use only inside children of PayPalScriptProviders
