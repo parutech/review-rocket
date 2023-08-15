@@ -73,7 +73,7 @@ function Login() {
                                 <label htmlFor="password" className="form-label login-password">Password:</label>
                                 <input type="password" name="password" id="password" className="form-control login-password mb-2" required min-length="8" max-length="50" onChange={(e) => { setPassLogin(e.target.value) }} />
                                 <div className="d-flex justify-content-center">
-                                    <Reaptcha className="login-captcha mb-2" sitekey="6LeCu6cnAAAAAO7MR9NDhIBZYLgph0s7Ws3aj0XC" ref={captchaRef} onVerify={captchaValidation} />
+                                    <Reaptcha className="login-captcha mb-2" sitekey="6LeZrWcnAAAAAFhDB04da59uGW-9TAV2-9TaPLjm" ref={captchaRef} onVerify={captchaValidation} />
                                 </div>
                                 <input type="submit" value="Login" className="login-submit btn btn-primary" disabled />
                             </form>
