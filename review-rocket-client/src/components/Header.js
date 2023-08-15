@@ -26,6 +26,11 @@ function Header() {
             }
             setSessionParameters(newSessionParameters)
         })
+        let page = window.location.href.split("/").slice(-1)[0]
+        if (page != '') {
+            page = page.charAt(0).toUpperCase() + page.slice(1) + " | "
+        }
+        document.title = page + 'ReviewRocket'
     }, [])
 
     return (
