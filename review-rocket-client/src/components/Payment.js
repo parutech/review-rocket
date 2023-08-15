@@ -65,6 +65,7 @@ const ButtonWrapper = ({ showSpinner, refillBundle }) => {
                         Axios.post(`https://review-rocket.fr/api/orders/${data.subscriptionID}/execute`, {
                             tokens: refillBundle["tokens"],
                         }).then((res) => {
+                            window.location.reload()
                             // console.log(res)
                         })
                     }}
@@ -140,6 +141,7 @@ const ButtonWrapper = ({ showSpinner, refillBundle }) => {
                                 tokens: refillBundle["tokens"],
                                 transaction: transaction
                             }).then((res) => {
+                                window.location.reload()
                                 // console.log(res)
                             })
                         } catch (error) {

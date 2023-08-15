@@ -35,7 +35,7 @@ morgan.token('email', function (req, res) {
 app.use(morgan(':email | :remote-addr <-> :remote-user [:date[clf]] ":method :url HTTP/:http-version" :status :res[content-length] in :response-time ms'))
 app.use(express.json())
 app.use(cors({
-    origin: ["http://localhost:3000"],
+    origin: ["https://review-rocket.fr"],
     methods: ["GET", "POST"],
     credentials: true,
 }))
@@ -50,7 +50,7 @@ app.use(session({
     resave: false,
     saveUninitialized: false,
     cookie: {
-        expires: 1000 * 60 * 30,
+        expires: 1000 * 60 * 60,
     },
 }))
 
@@ -819,7 +819,6 @@ app.post("/api/logout", (req, res) => {
 })
 
 app.post("/api/verify", (req, res) => {
-    let userEmail = ""
     req.session.user ?
         userEmail = JSON.parse(jfe.decrypt(
             Buffer.from(process.env.UID_ENCRYPT, 'base64'),
@@ -829,8 +828,8 @@ app.post("/api/verify", (req, res) => {
     const verificationKey = req.body.verificationKey
 
     pool.query(
-        "SELECT * FROM users WHERE email = ? AND verification = ? LIMIT 1;",
-        [userEmail, verificationKey],
+        "SELECT email FROM users WHERE verification = ? LIMIT 1;",
+        [verificationKey],
         (qerr, qres) => {
             if (qerr) {
                 res.send({
@@ -855,6 +854,8 @@ app.post("/api/verify", (req, res) => {
                 })
                 return
             }
+
+            const userEmail = qres[0]['email']
 
             pool.query(
                 "UPDATE users SET verified=1 WHERE email=?",
@@ -1080,66 +1081,48 @@ app.post("/api/orders/:orderID/execute", (req, res) => {
 })
 
 app.post("/api/get-reviews", async (req, res) => {
-    if (!req.session.user) {
-        res.send({ loggedIn: false })
-        return
-    }
-
-    const userEmail = JSON.parse(jfe.decrypt(
-        Buffer.from(process.env.UID_ENCRYPT, 'base64'),
-        req.session.user)
-    ).email
-
     let items = process.env.OPENAI_KEY.split(",")
-    let oai_key = items[Math.floor(Math.random() * items.length)];
-    const configuration = new Configuration({
-        apiKey: oai_key,
-    });
-    const openai = new OpenAIApi(configuration);
-
-    let productHandle = req.body.productHandle
-    let productTitle = req.body.productTitle
-    let quantity = req.body.quantity
+    let amount = req.body.amount
     let language = req.body.language
     let keywords = req.body.keywords
     let gender = req.body.gender
     let age = req.body.age
-    let dateStart = new Date(req.body.periodStart)
-    let dateEnd = new Date(req.body.periodEnd)
-    let countryCode = req.body.countryCode
 
-    let userPrompt = 'Generate a JSON-formatted answer containing short, belivable reviews using the given information.\
+    const batch_size = 50
+    const quotient = Math.floor(amount / batch_size)
+    const last_batch = amount % batch_size
+    const quantities = Array(quotient).fill(batch_size)
+    if (last_batch > 0) { quantities.push(last_batch) }
+
+    const promises = quantities.map(async (quantity) => {
+        let oai_key = items[Math.floor(Math.random() * items.length)];
+        const configuration = new Configuration({
+            apiKey: oai_key,
+        });
+        const openai = new OpenAIApi(configuration);
+
+        let userPrompt = 'Generate a JSON-formatted answer containing short, belivable reviews using the given information.\
         The information will follow the JSON format, and will be composed of the amount of reviews to generate, the language the reviews are written in, the keywords describing the product reviewed, the age and gender of the people writing the reviews, and the start and end of the period in which the reviews are written. This is an example of such information:\
         {"quantity":"3","language":"english","keywords":["handbag","leather","black","high-quality","luxurious"],"gender":"male","age":"senior"}\
         The output should be JSON-formatted and contain the following fields : author (First and last names of the person writing the review), body_text (The review itself). The keywords should be rarely used. The reviews should be short and reflect one quality that the product may have. The reviews must not contain commas. This is an example of such an answer:\
         {"reviews":[{"author":"John Smith","body_text":"I recently purchased this handbag and I must say it exceeded my expectations. The leather is top-notch and the black color gives it a sleek look."},{"author":"Robert Johnson","body_text":"Very good. Highly recommended!"},{"author":"Michael Williams","body_text":"I\'m impressed by the handbag\'s quality."}]}\
         Here is the information to use: '+ JSON.stringify({ quantity, language, keywords, gender, age })
 
-    let ai_response = await openai.createChatCompletion({
-        model: "gpt-3.5-turbo",
-        messages: [{ role: "user", content: userPrompt }],
-    });
-    let json_response = JSON.parse(ai_response.data.choices[0].message.content.replace(/,(?=\s*?[}\]])/g, '')).reviews
+        let ai_response = await openai.createChatCompletion({
+            model: "gpt-3.5-turbo",
+            messages: [{ role: "user", content: userPrompt }],
+        });
 
-    let results = []
-    json_response.map((review) => {
-        review["product_handle"] = productHandle;
-        review["title"] = productTitle;
-        review["rating"] = Math.round(Math.random() + 4)
-        review["email"] = review["author"].toLowerCase().split(" ").join(".") + "@mail.com"
-        review["body_text"] = review["body_text"].replace(',', '.')
-        review["body_urls"] = ""
-        let newDateString = new Date(dateStart.getTime() + Math.random() * (dateEnd.getTime() - dateStart.getTime())).toLocaleString('en-GB')
-        review["created_at"] = newDateString.substring(0, newDateString.length - 3).replace(',', '')
-        review["avatar"] = ""
-        review["country_code"] = countryCode
-        review["status"] = "enable"
-        review["featured"] = "0"
-        results.push(review)
+        json_response = JSON.parse(ai_response.data.choices[0].message.content.replace(/,(?=\s*?[}\]])/g, '')).reviews
+
+        return json_response
     })
 
+    const response = await Promise.allSettled(promises)
+
     res.send({
-        results: results
+        success: true,
+        results: response
     })
 })
 

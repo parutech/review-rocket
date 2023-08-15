@@ -20,12 +20,12 @@ function Account() {
     const [passRegister, setPassRegister] = useState('')
     const [passConfirmRegister, setPassConfirmRegister] = useState('')
     const [deletePass, setDeletePass] = useState('')
-    const [referralState, setReferralState] = useState({})
+    const [referralState, setReferralState] = useState({ isAffiliate: false })
 
     useEffect(() => {
         Axios.get('https://review-rocket.fr/api/referral-state').then((res) => {
             if (!res.data.success) {
-                setReferralState({})
+                setReferralState({ isAffiliate: false })
             }
             setReferralState(res.data.referralState)
         })

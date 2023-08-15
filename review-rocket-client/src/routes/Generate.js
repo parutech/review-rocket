@@ -264,103 +264,80 @@ function Generate() {
         e.preventDefault()
         setIsSubmitted(true)
 
-        const batch_size = 50
         const language = countryCodeToLanguage[countryCode]
-        const quotient = Math.floor(amount / batch_size)
-        const last_batch = amount % batch_size
-        const quantities = Array(quotient).fill(batch_size)
-        if (last_batch > 0) { quantities.push(last_batch) }
 
         let counterValue = 0
-        let counterETA = Math.ceil(Math.max(batch_size * (quotient > 0), last_batch) * 1.5)
+        let counterETA = Math.ceil(Math.min(50, amount) * 2)
         const counterUp = setInterval(function () {
             counterValue += 0.25;
             let counterPercent = counterValue * 100 / counterETA
             if (counterPercent < 100) {
                 document.getElementById('progress-bar').style.width = counterPercent + '%'
             }
-            else {
+            if (window.location.href !== "https://review-rocket.fr/generate") {
                 clearInterval(counterUp);
             }
         }, 250);
 
-        const requests = quantities.map(async (quantity) => {
-            let api_response = await Axios.post('https://review-rocket.fr/api/get-reviews', {
-                productHandle: productHandle,
-                productTitle: productTitle,
-                quantity: quantity,
+        let reviews = []
+        let missingAmount = amount
+        let retries = 0
+        while (missingAmount > 0 && retries <= 4) {
+            counterValue = Math.max(1, counterValue - missingAmount)
+
+            const missingReviews = await Axios.post('https://review-rocket.fr/api/get-reviews', {
+                amount: missingAmount,
                 language: language,
                 keywords: keywords,
                 gender: gender,
                 age: age,
-                periodStart: periodStart,
-                periodEnd: periodEnd,
-                countryCode: countryCode
             })
+            console.log(missingReviews)
 
-            return api_response
-        });
-
-        try {
-            let results = []
-            const responses = await Promise.allSettled(requests);
-            responses.forEach((item) => {
-                if (item.status === "fulfilled") {
-                    results.push(...item.value.data.results)
+            missingReviews.data.results.forEach((results) => {
+                if (results.status === "fulfilled") {
+                    results.value.forEach((review) => {
+                        review["product_handle"] = productHandle;
+                        review["title"] = productTitle;
+                        review["rating"] = Math.round(Math.random() + 4)
+                        review["email"] = review["author"].toLowerCase().split(" ").join(".") + "@mail.com"
+                        review["body_text"] = review["body_text"].replace(',', '.')
+                        review["body_urls"] = ""
+                        let dateStart = new Date(periodStart)
+                        let dateEnd = new Date(periodEnd)
+                        let newDateString = new Date(dateStart.getTime() + Math.random() * (dateEnd.getTime() - dateStart.getTime())).toLocaleString('en-GB')
+                        review["created_at"] = newDateString.substring(0, newDateString.length - 3).replace(',', '')
+                        review["avatar"] = ""
+                        review["country_code"] = countryCode
+                        review["status"] = "enable"
+                        review["featured"] = "0"
+                        reviews.push(review)
+                    })
                 }
             });
 
-            let missingAmount = amount - results.length
-            let retries = 0
-            while (missingAmount > 0 && retries <= 5) {
-                counterETA += missingAmount
+            missingAmount = amount - reviews.length
+            retries += 1
+        }
 
-                const missingReviews = [missingAmount].map(async (quantity) => {
-                    let api_response = await Axios.post('https://review-rocket.fr/api/get-reviews', {
-                        productHandle: productHandle,
-                        productTitle: productTitle,
-                        quantity: quantity,
-                        language: language,
-                        keywords: keywords,
-                        gender: gender,
-                        age: age,
-                        periodStart: periodStart,
-                        periodEnd: periodEnd,
-                        countryCode: countryCode
-                    })
-
-                    return api_response
-                });
-
-                const response = await Promise.allSettled(missingReviews);
-                response.forEach((item) => {
-                    if (item.status === "fulfilled") {
-                        results.push(...item.value.data.results)
-                    }
-                });
-
-                missingAmount = amount - results.length
-                retries += 1
-            }
-
-            if (missingAmount > 0) {
-                throw new Error('Could not generate the required reviews');
-            }
-
-            Axios.post('https://review-rocket.fr/api/generated-tokens', { quantity: amount }).then(async (res) => {
-                if (!res.data.executed) {
-                    throw new Error('Could not withdraw tokens from account');
-                }
-
-                let resultsCsv = JSON2CSV(results.slice(0, amount))
-                setCsvData(resultsCsv)
-                return
-            })
-        } catch (err) {
-            // console.log({ error: String(err) });
+        if (missingAmount > 0) {
+            clearInterval(counterUp)
+            setIsGenerated(true)
+            throw new Error('Could not generate the required reviews');
         }
 
         clearInterval(counterUp)
+
+        Axios.post('https://review-rocket.fr/api/generated-tokens', { quantity: amount }).then(async (res) => {
+            if (!res.data.executed) {
+                throw new Error('Could not withdraw tokens from account');
+            }
+
+            let resultsCsv = JSON2CSV(reviews.slice(0, amount))
+            setCsvData(resultsCsv)
+            return
+        })
+
         setIsGenerated(true)
     }
 
